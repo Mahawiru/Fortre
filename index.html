@@ -201,8 +201,25 @@
   <!-- AUTHENTICATION GATE (LOGIN / SIGN-UP / FORGOT PASSWORD / DEMO MODE) -->
   <!-- =================================================================== -->
   <div x-show="!currentUser" x-cloak class="relative z-10 min-h-screen w-full flex flex-col items-center justify-center p-4 sm:p-6">
-    <div class="w-full max-w-md flex items-center justify-end gap-2 mb-4">
-      <button @click="toggleTheme()" :aria-label="darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'" class="w-10 h-10 rounded-xl bg-white/90 dark:bg-[#0F172A]/90 border border-slate-200 dark:border-slate-800 flex items-center justify-center shadow-sm cursor-pointer transition-transform active:scale-95">
+   <div class="w-full max-w-md flex items-center justify-end gap-2 mb-4">
+      <!-- Tombol Ganti Bahasa (ID / EN) -->
+      <div class="h-10 inline-flex items-center bg-white/90 dark:bg-[#0F172A]/90 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-xl p-1 text-xs shadow-sm">
+        <button type="button"
+          @click="lang = 'id'; saveLang()"
+          :class="lang === 'id' ? 'bg-indigo-600 text-white font-bold shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+          class="h-full px-2.5 rounded-lg transition cursor-pointer">
+          ID
+        </button>
+        <button type="button"
+          @click="lang = 'en'; saveLang()"
+          :class="lang === 'en' ? 'bg-indigo-600 text-white font-bold shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+          class="h-full px-2.5 rounded-lg transition cursor-pointer">
+          EN
+        </button>
+      </div>
+
+      <!-- Tombol Dark/Light Mode Asli -->
+      <button @click="toggleTheme()" :aria-label="darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'" class="w-10 h-10 rounded-xl bg-white/90 dark:bg-[#0F172A]/90 backdrop-blur-xl border border-slate-200 dark:border-slate-800 flex items-center justify-center shadow-sm cursor-pointer">
         <span x-show="darkMode"><i data-lucide="sun" class="w-4 h-4 text-amber-400"></i></span>
         <span x-show="!darkMode"><i data-lucide="moon" class="w-4 h-4 text-indigo-600"></i></span>
       </button>
