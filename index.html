@@ -3436,9 +3436,7 @@
 
       // Otomatis kunci kembali jika user klik Logout
       supabase.auth.onAuthStateChange((_event, session) => {
-        if (session) {
-          tampilkanFiturUtama();
-        } else if (localStorage.getItem('fortre_guest_active') !== 'true') {
+        if (localStorage.getItem('fortre_guest_active') !== 'true') {
           tampilkanLogin();
         }
       });
