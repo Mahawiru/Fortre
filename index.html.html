@@ -1,0 +1,2283 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0B1120" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Fortre" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <title>Fortre - Money Tracker & Budget Manager</title>
+  <meta name="description" content="Fortre - Money Tracker & Budget Manager with authentication gate, adaptive desktop glassmorphic dashboard & mobile fintech UI, multi-currency, QRIS scanner, and cloud/localStorage sync." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            fortre: {
+              navy: '#0F172A',
+              emerald: '#10B981',
+              ruby: '#EF4444',
+              mint: '#34D399',
+              dark: '#0B1120'
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+  <!-- Supabase JS SDK v2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- SheetJS / XLSX CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- jsPDF CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+
+  <!-- html2canvas CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <!-- Alpine.js CDN -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+    .tabular-nums {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes navPop {
+      0% { transform: scale(0.92); }
+      55% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+    .animate-nav-pop { animation: navPop 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+    @keyframes logoSheen {
+      0% { transform: translateX(-160%) skewX(-22deg); opacity: 0; }
+      20% { opacity: 0.72; }
+      55% { transform: translateX(220%) skewX(-22deg); opacity: 0; }
+      100% { transform: translateX(220%) skewX(-22deg); opacity: 0; }
+    }
+    .fortre-logo-gloss {
+      position: relative;
+      overflow: hidden;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+      filter: drop-shadow(0 4px 10px rgba(15, 23, 42, 0.24));
+    }
+    .dark .fortre-logo-gloss {
+      filter: drop-shadow(0 4px 14px rgba(229, 193, 88, 0.32));
+    }
+    .fortre-logo-gloss::after {
+      content: '';
+      position: absolute;
+      inset: -15% 0;
+      width: 44%;
+      background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.68) 50%, transparent 80%);
+      animation: logoSheen 4.8s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .fortre-date-input::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0.72;
+      margin-left: 1px;
+    }
+    .dark .fortre-date-input::-webkit-calendar-picker-indicator {
+      filter: invert(0.92);
+    }
+    .story-ring-unread {
+      background: conic-gradient(from 195deg, #10b981, #14b8a6, #e5c158, #f59e0b, #10b981);
+      padding: 2px;
+      border-radius: 9999px;
+    }
+    .story-ring-seen {
+      background: rgba(148, 163, 184, 0.45);
+      padding: 2px;
+      border-radius: 9999px;
+    }
+    .safe-bottom-nav { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+    .safe-top-header { padding-top: max(0.75rem, env(safe-area-inset-top)); }
+    @keyframes bottomSheetUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 767px) {
+      .mobile-bottom-sheet { animation: bottomSheetUp 0.24s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .mobile-bottom-sheet, .animate-nav-pop, .fortre-logo-gloss::after { animation: none !important; transition: none !important; }
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.2); }
+    ::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.35); border-radius: 9999px; }
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-800 dark:text-slate-100 antialiased selection:bg-emerald-500 selection:text-white"
+      x-data="fortreApp()"
+      x-init="initApp()">
+
+  <!-- CANVAS DYNAMIC DOT MATRIX ANIMATION -->
+  <canvas id="dotMatrixCanvas" class="fixed inset-0 pointer-events-none z-0 opacity-45"></canvas>
+
+  <!-- =================================================================== -->
+  <!-- AUTHENTICATION GATE (LOGIN / SIGN-UP / FORGOT PASSWORD / DEMO MODE) -->
+  <!-- =================================================================== -->
+  <div x-show="!currentUser" x-cloak class="relative z-10 min-h-screen w-full flex flex-col items-center justify-center p-4 sm:p-6">
+    <div class="w-full max-w-md flex items-center justify-end gap-2 mb-4">
+      <button @click="toggleTheme()" :aria-label="darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'" class="w-10 h-10 rounded-xl bg-white/90 dark:bg-[#0F172A]/90 border border-slate-200 dark:border-slate-800 flex items-center justify-center shadow-sm cursor-pointer transition-transform active:scale-95">
+        <span x-show="darkMode"><i data-lucide="sun" class="w-4 h-4 text-amber-400"></i></span>
+        <span x-show="!darkMode"><i data-lucide="moon" class="w-4 h-4 text-indigo-600"></i></span>
+      </button>
+    </div>
+
+    <div class="w-full max-w-md rounded-2xl bg-white/92 dark:bg-[#0F172A]/92 backdrop-blur-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
+      <div class="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-emerald-500 to-teal-500"></div>
+      <div class="p-6 sm:p-8 space-y-5">
+        <div class="flex flex-col items-center text-center space-y-2">
+          <div class="w-20 h-20 fortre-logo-gloss flex items-center justify-center">
+            <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full relative z-[1]">
+  <defs>
+    <linearGradient id="fortreGold" x1="40" y1="20" x2="160" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FDE68A"/>
+      <stop offset="50%" stop-color="#E5C158"/>
+      <stop offset="100%" stop-color="#B45309"/>
+    </linearGradient>
+    <linearGradient id="fortreTeal" x1="100" y1="60" x2="170" y2="170" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2DD4BF"/>
+      <stop offset="100%" stop-color="#0F766E"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer Shield & Castle Crenellations Top -->
+  <path d="M100 20L132 35V65H152V105C152 142 124 168 100 182C76 168 48 142 48 105V65H68V35L100 20Z" stroke="url(#fortreGold)" stroke-width="4" stroke-linejoin="round" fill="#0F172A"/>
+
+  <!-- Inner Geometric Lines & F-Shape Framing -->
+  <path d="M68 65H132" stroke="url(#fortreGold)" stroke-width="2.5"/>
+  <path d="M100 35V182" stroke="url(#fortreGold)" stroke-width="2.5" opacity="0.9"/>
+  <path d="M68 85H100V145H68V85Z" stroke="url(#fortreGold)" stroke-width="2.5" opacity="0.85"/>
+  <path d="M100 85H132V145H100V85Z" stroke="url(#fortreTeal)" stroke-width="2.5" opacity="0.75"/>
+
+  <!-- Central Dollar Sign ($) -->
+  <path d="M100 58V128M112 73C112 67 106 63 100 63C90 63 88 73 100 80C112 87 110 97 100 97C90 97 88 107 100 114C106 114 112 110 112 104" stroke="url(#fortreGold)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+          </div>
+          <div>
+            <h1 class="text-3xl font-black text-slate-900 dark:text-[#E5C158] tracking-tight leading-none font-sans">Fortre</h1>
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 tracking-wide mt-1">Money Tracker & Budget Manager</p>
+          </div>
+        </div>
+
+        <template x-if="authFeedback">
+          <div class="p-3 rounded-xl text-xs font-medium border flex items-start gap-2"
+               :class="authFeedback.type === 'error' ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-300'">
+            <span x-text="authFeedback.message"></span>
+          </div>
+        </template>
+
+        <!-- Forgot Password View -->
+        <template x-if="authView === 'forgot'">
+          <form @submit.prevent="submitForgotPassword()" class="space-y-4">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 dark:text-white" x-text="t('auth.forgotTitle')"></h2>
+              <p class="text-xs text-slate-500 mt-0.5" x-text="t('auth.forgotDesc')"></p>
+            </div>
+            <div>
+              <label class="text-xs font-semibold block mb-1" x-text="t('auth.emailLabel')"></label>
+              <input type="email" required x-model="authForm.email" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm">
+            </div>
+            <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-sm cursor-pointer" x-text="t('auth.forgotSubmit')"></button>
+            <button type="button" @click="authView = 'login'; authFeedback = null" class="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold cursor-pointer" x-text="t('auth.backToLogin')"></button>
+          </form>
+        </template>
+
+        <!-- Login / Sign-Up Flow -->
+        <template x-if="authView !== 'forgot'">
+          <div class="space-y-4">
+            <button type="button" @click="loginWithGoogle()" class="w-full py-2.5 px-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 font-semibold text-sm flex items-center justify-center gap-2.5 cursor-pointer">
+              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24Z"/><path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14Z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96Z"/></svg>
+              <span>Continue with Google</span>
+            </button>
+
+            <div class="relative flex items-center py-1">
+              <div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+              <span class="shrink mx-3 text-[11px] font-medium text-slate-400" x-text="t('auth.orDivider')"></span>
+              <div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+            </div>
+
+            <div class="grid grid-cols-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <button type="button" @click="authView = 'login'; authFeedback = null" :class="authView === 'login' ? 'bg-white dark:bg-[#0F172A] text-slate-900 dark:text-white shadow-sm' : 'text-slate-500'" class="py-2 rounded-lg text-xs font-bold cursor-pointer" x-text="t('auth.loginTab')"></button>
+              <button type="button" @click="authView = 'signup'; authFeedback = null" :class="authView === 'signup' ? 'bg-white dark:bg-[#0F172A] text-slate-900 dark:text-white shadow-sm' : 'text-slate-500'" class="py-2 rounded-lg text-xs font-bold cursor-pointer" x-text="t('auth.signupTab')"></button>
+            </div>
+
+            <form @submit.prevent="submitEmailAuth()" class="space-y-3">
+              <template x-if="authView === 'signup'">
+                <div>
+                  <label class="text-xs font-semibold block mb-1" x-text="t('auth.fullNameLabel')"></label>
+                  <input type="text" required x-model="authForm.fullName" placeholder="Rafli Ramadhani" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm">
+                </div>
+              </template>
+              <div>
+                <label class="text-xs font-semibold block mb-1" x-text="t('auth.emailLabel')"></label>
+                <input type="email" required x-model="authForm.email" placeholder="nama@email.com" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm">
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="text-xs font-semibold" x-text="t('auth.passwordLabel')"></label>
+                  <button type="button" x-show="authView === 'login'" @click="authView = 'forgot'; authFeedback = null" class="text-xs font-semibold text-emerald-500 hover:underline cursor-pointer">Lupa Password?</button>
+                </div>
+                <input type="password" required x-model="authForm.password" placeholder="••••••" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm">
+              </div>
+              <button type="submit" class="w-full py-3 rounded-xl bg-slate-900 dark:bg-slate-800 text-white font-bold text-sm cursor-pointer" x-text="authView === 'signup' ? t('auth.signupTab') : t('auth.loginTab')"></button>
+            </form>
+
+            <div class="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-3">
+              <button type="button" @click="loginDemoMode()" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 cursor-pointer">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                <span>Masuk Mode Demo</span>
+              </button>
+              <p class="text-[11px] text-center text-slate-500 dark:text-slate-400 font-medium" x-text="t('auth.footerNote')"></p>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- MAIN APP SHELL (ONLY WHEN AUTHENTICATED)                            -->
+  <!-- =================================================================== -->
+  <div x-show="currentUser" x-cloak class="relative z-10 min-h-screen w-full">
+
+    <!-- EMERGENCY WARNING POPUP -->
+    <template x-if="budgetStatuses.exceededCount > 0 && showEmergencyWarning">
+      <div class="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm">
+        <div class="relative w-full max-w-lg bg-white dark:bg-[#0F172A] border-2 border-red-500 rounded-t-3xl md:rounded-2xl mobile-bottom-sheet shadow-2xl overflow-hidden p-5 md:p-6 text-center">
+          <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-600 via-rose-500 to-amber-500"></div>
+          <div class="w-10 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto mb-3 md:hidden"></div>
+          <span class="inline-block px-3 py-1 rounded-xl text-xs font-bold uppercase bg-red-500/10 text-red-500 mb-2" x-text="t('optimization.exceededWarning')"></span>
+          <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2" x-text="budgetStatuses.exceededCount + (lang === 'en' ? ' Categories Exceeded Budget!' : ' Kategori Melebihi Batas Anggaran!')"></h3>
+          <p class="text-sm text-slate-600 dark:text-slate-300 mb-5" x-text="lang === 'en' ? 'Some categories exceeded monthly limits.' : 'Beberapa pos anggaran melebihi pagu bulanan.'"></p>
+          <div class="flex flex-col sm:flex-row gap-3 justify-center">
+            <button @click="showEmergencyWarning = false; currentView = 'optimization'; mobileTab = 'analysis'; mobileAnalysisTab = 'budgets'" class="px-5 py-2.5 rounded-xl bg-red-600 text-white font-semibold text-sm cursor-pointer" x-text="t('nav.optimization')"></button>
+            <button @click="showEmergencyWarning = false" class="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 font-semibold text-sm cursor-pointer" x-text="t('actions.dismiss')"></button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ================================================================= -->
+    <!-- MOBILE NATIVE FINTECH UI (< md viewports)                         -->
+    <!-- ================================================================= -->
+    <div class="md:hidden min-h-screen pb-24 flex flex-col">
+      <!-- Mobile Top Bar with Glossy Emblem + Hello, [First Name] 👋 + Subtext | Badges Strip + Theme + Story-Ring Avatar -->
+      <header class="sticky top-0 z-30 safe-top-header bg-white/92 dark:bg-[#0F172A]/92 backdrop-blur-xl border-b border-slate-200/70 dark:border-slate-800/70 px-3.5 py-2.5">
+        <div class="flex items-center justify-between gap-2 max-w-2xl mx-auto">
+          <button type="button" @click="mobileTab = 'home'; $nextTick(() => renderMobileCharts())" class="flex items-center gap-2 min-w-0 cursor-pointer select-none text-left">
+            <div class="w-11 h-11 shrink-0 fortre-logo-gloss flex items-center justify-center">
+              <img src="/assets/aistudio/fortre-emblem-light.png" alt="Fortre Logo" class="w-full h-full object-contain dark:hidden relative z-[1]">
+              <img src="/assets/aistudio/fortre-emblem-dark.png" alt="Fortre Logo" class="w-full h-full object-contain hidden dark:block relative z-[1]">
+            </div>
+            <div class="min-w-0">
+              <div class="text-[15px] font-black text-slate-900 dark:text-white tracking-tight truncate leading-tight" x-text="'Hello, ' + firstName + ' 👋'"></div>
+              <div class="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate leading-tight" x-text="lang === 'en' ? 'Track your finances today' : 'Pantau keuanganmu hari ini'"></div>
+            </div>
+          </button>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button type="button" @click="mobileTab = 'analysis'; mobileAnalysisTab = 'badges'; markBadgesSeen()" aria-label="Badges" class="relative h-8 px-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-1 cursor-pointer">
+              <template x-for="b in unlockedBadges.slice(0, 2)" :key="b.id">
+                <span class="inline-flex items-center justify-center" :class="b.colorClass" x-html="badgeIconSvg(b.icon, 'w-3.5 h-3.5')"></span>
+              </template>
+              <span x-show="unlockedBadges.length === 0"><i data-lucide="trophy" class="w-3.5 h-3.5 text-slate-400"></i></span>
+              <span class="text-[10px] font-black font-mono text-slate-700 dark:text-slate-200" x-text="unlockedBadges.length + '/' + badgesList.length"></span>
+              <span x-show="hasNewBadge" class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-500"></span>
+            </button>
+            <button type="button" @click="toggleTheme()" :aria-label="darkMode ? 'Light Mode' : 'Dark Mode'" class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center cursor-pointer transition-transform active:scale-90">
+              <span x-show="darkMode"><i data-lucide="sun" class="w-4 h-4 text-amber-400"></i></span>
+              <span x-show="!darkMode"><i data-lucide="moon" class="w-4 h-4 text-indigo-600"></i></span>
+            </button>
+            <button type="button" @click="openStoryModal()" :aria-label="lang === 'en' ? 'Story Fortre & Profile' : 'Cerita Fortre & Profil'" :class="isCeritaActive() ? (hasUnseenStory ? 'story-ring-unread' : 'story-ring-seen') : ''" class="rounded-full cursor-pointer transition-transform active:scale-90">
+              <div class="w-8 h-8 rounded-full overflow-hidden border-2 border-white dark:border-[#0F172A] bg-gradient-to-br from-indigo-600 to-emerald-500 text-white font-black text-xs flex items-center justify-center">
+                <template x-if="currentUser && currentUser.avatarUrl"><img :src="currentUser.avatarUrl" alt="Avatar" class="w-full h-full object-cover"></template>
+                <template x-if="!currentUser || !currentUser.avatarUrl"><span x-text="userAvatarText()"></span></template>
+              </div>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div class="flex-1 w-full max-w-2xl mx-auto px-4 pt-4 space-y-5">
+        <!-- MOBILE HOME TAB -->
+        <div x-show="mobileTab === 'home'" class="space-y-4">
+          <!-- Single-Row Non-Clipping Mobile Period Filter with Editable Calendar Picker -->
+          <div class="flex items-center justify-between gap-1 w-full">
+            <div class="inline-flex shrink-0 p-0.5 rounded-xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 shadow-xs">
+              <template x-for="mode in ['daily', 'monthly', 'yearly', 'all']" :key="mode">
+                <button @click="periodMode = mode; $nextTick(() => renderMobileCharts())" :class="periodMode === mode ? 'bg-emerald-500 text-white shadow-sm font-bold' : 'text-slate-500'" class="px-1.5 py-1 rounded-lg text-[9.5px] font-semibold cursor-pointer whitespace-nowrap" x-text="t('period.' + mode)"></button>
+              </template>
+            </div>
+            <div x-show="periodMode !== 'all'" class="inline-flex shrink-0 items-center bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 p-0.5 rounded-xl shadow-xs">
+              <button @click="stepPeriod(-1)" class="p-0.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"><i data-lucide="chevron-left" class="w-3 h-3"></i></button>
+              <input x-show="periodMode === 'daily'" type="date" x-model="selectedDate" @change="syncFromDate()" class="fortre-date-input w-[96px] text-[9.5px] font-mono font-bold px-0.5 bg-transparent focus:outline-none tabular-nums cursor-pointer">
+              <input x-show="periodMode === 'monthly'" type="month" x-model="selectedMonth" @change="syncFromMonth()" class="fortre-date-input w-[104px] text-[9.5px] font-mono font-bold px-0.5 bg-transparent focus:outline-none tabular-nums cursor-pointer">
+              <input x-show="periodMode === 'yearly'" type="number" min="1990" max="2100" x-model="selectedYear" @input="syncFromYear()" class="w-[46px] text-center text-[10px] font-mono font-bold px-0.5 bg-transparent focus:outline-none tabular-nums">
+              <button @click="stepPeriod(1)" class="p-0.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"><i data-lucide="chevron-right" class="w-3 h-3"></i></button>
+            </div>
+          </div>
+
+          <!-- Unified Indigo-to-Emerald Current Balance + Stock-Style Line Chart + Income/Expense Below -->
+          <div class="relative overflow-hidden rounded-2xl p-5 text-white bg-gradient-to-br from-indigo-700 via-teal-700 to-emerald-600 shadow-xl shadow-emerald-500/20 space-y-3.5">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <span class="text-xs font-semibold text-white/85 uppercase tracking-wider" x-text="lang === 'en' ? 'Current Balance' : 'Saldo Saat Ini'"></span>
+                <div class="text-2xl sm:text-3xl font-black tracking-tight mt-1 tabular-nums" x-text="formatMoney(periodTotals.balance)"></div>
+              </div>
+              <button @click="openAddModal()" class="w-11 h-11 rounded-full bg-white text-emerald-700 shadow-lg flex items-center justify-center shrink-0 cursor-pointer active:scale-90 transition-transform">
+                <i data-lucide="plus" class="w-6 h-6"></i>
+              </button>
+            </div>
+
+            <div class="relative h-36 w-full"><canvas id="mobileTrendChart"></canvas></div>
+
+            <div class="grid grid-cols-2 gap-2.5 pt-3 border-t border-white/20">
+              <div class="bg-slate-950/25 border border-emerald-300/35 rounded-xl px-3 py-2.5 space-y-1">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-xl bg-emerald-500 text-white shadow-md ring-2 ring-emerald-200/70 flex items-center justify-center shrink-0">
+                    <i data-lucide="arrow-down-left" class="w-4 h-4"></i>
+                  </div>
+                  <span class="text-[11px] font-bold text-emerald-100 truncate" x-text="t('headerCard.income')"></span>
+                </div>
+                <div class="text-[13px] sm:text-sm font-black text-emerald-200 tabular-nums" x-text="formatMoney(periodTotals.totalIncome)"></div>
+              </div>
+              <div class="bg-slate-950/25 border border-rose-300/35 rounded-xl px-3 py-2.5 space-y-1">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-xl bg-rose-500 text-white shadow-md ring-2 ring-rose-200/70 flex items-center justify-center shrink-0">
+                    <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+                  </div>
+                  <span class="text-[11px] font-bold text-rose-100 truncate" x-text="t('headerCard.expense')"></span>
+                </div>
+                <div class="text-[13px] sm:text-sm font-black text-rose-200 tabular-nums" x-text="formatMoney(periodTotals.totalExpense)"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Horizontal Swipeable Wallet Carousel (Mobile) -->
+          <section class="space-y-2">
+            <div class="flex items-center justify-between px-0.5">
+              <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400" x-text="lang === 'en' ? 'Wallets & Payment Channels' : 'Dompet & Kanal Pembayaran'"></h3>
+              <span class="text-[10px] font-medium text-slate-400" x-text="lang === 'en' ? 'Swipe' : 'Geser'"></span>
+            </div>
+            <div id="mobile-wallet-carousel" class="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-1 no-scrollbar">
+              <template x-for="w in walletBalances" :key="w.method">
+                <div class="min-w-[205px] snap-start shrink-0 p-3.5 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200/70 dark:border-slate-800/70 shadow-sm space-y-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" :class="w.bgClass + ' ' + w.colorClass" x-html="walletIconSvg(w.icon, 'w-4 h-4')"></span>
+                      <span class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate" x-text="w.label"></span>
+                    </div>
+                    <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0" x-text="w.pct + '%'"></span>
+                  </div>
+                  <div class="text-sm font-black font-mono tabular-nums" :class="w.balance >= 0 ? 'text-slate-900 dark:text-white' : 'text-red-500'" x-text="formatMoney(w.balance)"></div>
+                  <div class="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div class="h-full rounded-full" :class="w.barClass" :style="'width:' + Math.min(100, Math.max(4, w.pct)) + '%'"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </section>
+
+          <!-- Alokasi Pengeluaran (Moved ABOVE Pembayaran Mendatang) -->
+          <section class="p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200/70 dark:border-slate-800/70 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white" x-text="t('dashboard.expenseAllocation')"></h3>
+              <span class="text-[11px] font-mono font-bold text-rose-500" x-text="formatMoney(periodTotals.totalExpense)"></span>
+            </div>
+            <div class="grid grid-cols-5 gap-3 items-center">
+              <div class="col-span-2 relative h-28 flex items-center justify-center">
+                <canvas id="mobileExpenseDonut"></canvas>
+              </div>
+              <div class="col-span-3 space-y-1.5 text-xs">
+                <template x-for="item in expenseAllocationItems.slice(0, 4)" :key="item.category">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="truncate text-slate-600 dark:text-slate-300 font-medium" x-text="item.category"></span>
+                    <span class="font-mono font-bold shrink-0" x-text="item.pct + '%'"></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </section>
+
+          <!-- Horizontal Scrollable Upcoming Payment Cards -->
+          <section class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white" x-text="lang === 'en' ? 'Upcoming Payment' : 'Pembayaran Mendatang'"></h3>
+              <button @click="mobileTab = 'analysis'; mobileAnalysisTab = 'liabilities'" class="text-xs font-bold text-emerald-500 cursor-pointer" x-text="lang === 'en' ? 'See All' : 'Lihat Semua'"></button>
+            </div>
+            <div class="flex gap-3 overflow-x-auto pb-2">
+              <template x-for="u in upcomingPayments" :key="u.id">
+                <div class="min-w-[175px] shrink-0 p-3.5 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[10px] font-black shrink-0" :style="'background:' + getBrandMeta(u.title).bg" x-text="getBrandMeta(u.title).abbr"></div>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-500/10 text-purple-500" x-text="u.kind"></span>
+                  </div>
+                  <div class="text-xs font-bold truncate" x-text="u.title"></div>
+                  <div class="text-sm font-black text-emerald-500 tabular-nums" x-text="formatMoney(u.amount)"></div>
+                  <div class="text-[10px] text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-1.5" x-text="u.dueLabel"></div>
+                </div>
+              </template>
+            </div>
+          </section>
+
+          <!-- Rasio & Rencana Tabungan (Replaces Aktivitas Tabungan & Arus Kas) -->
+          <section class="p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200/70 dark:border-slate-800/70 shadow-sm space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white" x-text="lang === 'en' ? 'Savings Ratio & Plan' : 'Rasio & Rencana Tabungan'"></h3>
+                <p class="text-[11px] text-slate-500 mt-0.5" x-text="(lang === 'en' ? 'Actual vs Target: ' : 'Aktual vs Target: ') + periodTotals.savingsRate + '% / ' + targetSavingsRate + '%'"></p>
+              </div>
+              <button @click="mobileTab = 'analysis'; mobileAnalysisTab = 'wealth'" class="text-xs font-bold text-emerald-500 cursor-pointer" x-text="(lang === 'en' ? 'Manage' : 'Kelola') + ' →'"></button>
+            </div>
+            <div class="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full" :style="'width:' + Math.min(100, Math.round((periodTotals.savingsRate / Math.max(1, targetSavingsRate)) * 100)) + '%'"></div>
+            </div>
+            <div class="space-y-2">
+              <template x-for="g in savingsGoals" :key="g.id">
+                <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-1.5">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-xs font-bold truncate" x-text="g.title"></span>
+                    <button @click="depositGoal(g.id, 500000)" class="px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold cursor-pointer" x-text="lang === 'en' ? '+ Deposit' : '+ Setor'"></button>
+                  </div>
+                  <div class="flex justify-between text-[10px] font-mono text-slate-500">
+                    <span x-text="formatMoney(g.currentAmount) + ' / ' + formatMoney(g.targetAmount)"></span>
+                    <span class="font-bold text-emerald-500" x-text="Math.min(100, Math.round((g.currentAmount / Math.max(1, g.targetAmount)) * 100)) + '%'"></span>
+                  </div>
+                  <div class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                    <div class="h-full bg-emerald-500 rounded-full" :style="'width:' + Math.min(100, Math.round((g.currentAmount / Math.max(1, g.targetAmount)) * 100)) + '%'"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </section>
+        </div>
+
+        <!-- MOBILE TRANSAKSI TAB -->
+        <div x-show="mobileTab === 'transactions'" class="space-y-4">
+          <h2 class="text-lg font-black" x-text="t('transactions.subtitle')"></h2>
+
+          <!-- Rekap Riwayat (Synced Harian | Bulanan | Tahunan | Semua + < editable date >) -->
+          <div class="p-3.5 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 space-y-2.5">
+            <span class="block text-xs font-bold" x-text="lang === 'en' ? 'History Summary' : 'Rekap Riwayat'"></span>
+            <div class="flex items-center justify-between gap-1 w-full">
+              <div class="inline-flex shrink-0 p-0.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <template x-for="mode in ['daily', 'monthly', 'yearly', 'all']" :key="mode">
+                  <button @click="periodMode = mode; $nextTick(() => renderMobileCharts())" :class="periodMode === mode ? 'bg-emerald-500 text-white shadow-xs font-bold' : 'text-slate-500'" class="px-1 py-1 rounded-lg text-[9.5px] cursor-pointer whitespace-nowrap" x-text="t('period.' + mode)"></button>
+                </template>
+              </div>
+              <div x-show="periodMode !== 'all'" class="inline-flex shrink-0 items-center bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-0.5 rounded-xl">
+                <button @click="stepPeriod(-1)" class="p-0.5 rounded-lg hover:bg-white dark:hover:bg-slate-800 cursor-pointer"><i data-lucide="chevron-left" class="w-3 h-3"></i></button>
+                <input x-show="periodMode === 'daily'" type="date" x-model="selectedDate" @change="syncFromDate()" class="fortre-date-input w-[94px] text-[9.5px] font-mono font-bold px-0.5 bg-transparent focus:outline-none tabular-nums cursor-pointer">
+                <input x-show="periodMode === 'monthly'" type="month" x-model="selectedMonth" @change="syncFromMonth()" class="fortre-date-input w-[102px] text-[9.5px] font-mono font-bold px-0.5 bg-transparent focus:outline-none tabular-nums cursor-pointer">
+                <input x-show="periodMode === 'yearly'" type="number" min="1990" max="2100" x-model="selectedYear" @input="syncFromYear()" class="w-[44px] text-center text-[10px] font-mono font-bold px-0.5 bg-transparent focus:outline-none tabular-nums">
+                <button @click="stepPeriod(1)" class="p-0.5 rounded-lg hover:bg-white dark:hover:bg-slate-800 cursor-pointer"><i data-lucide="chevron-right" class="w-3 h-3"></i></button>
+              </div>
+            </div>
+            <div class="space-y-1.5 max-h-40 overflow-y-auto">
+              <template x-for="row in historySummaryRows" :key="row.key">
+                <button type="button" @click="jumpToHistoryPeriod(row.key)" class="w-full p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800 flex items-center justify-between text-[11px] cursor-pointer hover:border-emerald-500/40">
+                  <span class="font-mono font-bold truncate" x-text="row.label + ' (' + row.count + ')'"></span>
+                  <div class="flex items-center gap-2 font-mono font-bold shrink-0">
+                    <span class="text-emerald-500" x-text="'+' + formatMoney(row.income)"></span>
+                    <span class="text-rose-500" x-text="'-' + formatMoney(row.expense)"></span>
+                  </div>
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <!-- Riwayat Cerita Fortre (Moved to Transactions) -->
+          <div class="p-3.5 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 space-y-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-bold flex items-center gap-1.5"><i data-lucide="history" class="w-3.5 h-3.5 text-emerald-500"></i><span x-text="lang === 'en' ? 'Story Fortre History' : 'Riwayat Cerita Fortre'"></span></span>
+              <span class="text-[10px] text-slate-400" x-text="lang === 'en' ? 'Weekly Archive' : 'Arsip Mingguan'"></span>
+            </div>
+            <div class="space-y-1.5 max-h-40 overflow-y-auto">
+              <template x-for="st in weeklyStories" :key="st.weekKey">
+                <button type="button" @click="openStoryModal(st.weekKey)" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800 flex items-center justify-between gap-2 text-left cursor-pointer hover:border-emerald-500/40">
+                  <div class="min-w-0">
+                    <div class="text-xs font-bold truncate" x-text="st.rangeLabel"></div>
+                    <div class="text-[10px] text-slate-400 truncate" x-text="st.topCat"></div>
+                  </div>
+                  <span class="text-[11px] font-mono font-bold text-emerald-500 shrink-0" x-text="formatMoney(st.netFlow)"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 space-y-2.5">
+            <input type="text" x-model="searchQuery" @keydown.enter="addRecentSearch(searchQuery)" :placeholder="t('transactions.searchPlaceholder')" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+            <div class="grid grid-cols-2 gap-2">
+              <select x-model="filterType" class="px-2.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                <option value="all" x-text="t('transactions.allTypes')"></option>
+                <option value="income" x-text="t('transactions.incomeOnly')"></option>
+                <option value="expense" x-text="t('transactions.expenseOnly')"></option>
+              </select>
+              <select x-model="filterMethod" class="px-2.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                <option value="all" x-text="t('transactions.allMethods')"></option>
+                <option value="Transfer Bank">Transfer Bank</option><option value="QRIS">QRIS</option><option value="Cash">Cash</option>
+              </select>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <template x-for="tx in filteredTransactions()" :key="tx.id">
+              <div class="p-3.5 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white text-[10px] font-black shrink-0" :style="'background:' + getBrandMeta(tx.description).bg" x-text="getBrandMeta(tx.description).abbr"></div>
+                  <div class="min-w-0">
+                    <div class="text-xs font-bold truncate" x-text="tx.description"></div>
+                    <div class="text-[10px] text-slate-400 mt-0.5 truncate" x-text="tx.date + ' • ' + tx.category + (tx.purchaseLocation ? ' • ' + tx.purchaseLocation : '')"></div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <span class="text-xs font-black font-mono" :class="tx.type === 'income' ? 'text-emerald-500' : 'text-red-500'" x-text="(tx.type === 'income' ? '+' : '-') + formatMoney(tx.amount)"></span>
+                  <button @click="startEditTransaction(tx)" aria-label="Edit transaction" class="p-1 text-slate-400 hover:text-emerald-500 cursor-pointer"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+                  <button @click="deleteTransaction(tx.id)" aria-label="Delete transaction" class="p-1 text-slate-400 hover:text-red-500 cursor-pointer"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- MOBILE ANALISIS TAB (Renamed to Analisis Keuangan + Distinct Achievement Icons/Colors) -->
+        <div x-show="mobileTab === 'analysis'" class="space-y-4">
+          <h2 class="text-lg font-black" x-text="lang === 'en' ? 'Financial Analysis' : 'Analisis Keuangan'"></h2>
+          <div class="flex gap-2 overflow-x-auto pb-1">
+            <button @click="mobileAnalysisTab = 'budgets'" :class="mobileAnalysisTab === 'budgets' ? 'bg-emerald-500 text-white' : 'bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800'" class="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer" x-text="t('nav.optimization')"></button>
+            <button @click="mobileAnalysisTab = 'wealth'" :class="mobileAnalysisTab === 'wealth' ? 'bg-emerald-500 text-white' : 'bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800'" class="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer" x-text="t('nav.wealth')"></button>
+            <button @click="mobileAnalysisTab = 'liabilities'" :class="mobileAnalysisTab === 'liabilities' ? 'bg-emerald-500 text-white' : 'bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800'" class="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer" x-text="t('nav.liabilities')"></button>
+            <button @click="mobileAnalysisTab = 'badges'; markBadgesSeen()" :class="mobileAnalysisTab === 'badges' ? 'bg-emerald-500 text-white' : 'bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800'" class="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer" x-text="lang === 'en' ? 'Badges' : 'Lencana'"></button>
+          </div>
+
+          <div x-show="mobileAnalysisTab === 'budgets'" class="space-y-3">
+            <template x-for="b in budgetStatuses.items" :key="b.category">
+              <div class="p-3.5 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 space-y-1.5">
+                <div class="flex justify-between text-xs font-bold"><span x-text="b.category"></span><span x-text="b.percentage + '%'"></span></div>
+                <div class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden"><div class="h-full bg-emerald-500 rounded-full" :style="'width:' + Math.min(100, b.percentage) + '%'"></div></div>
+              </div>
+            </template>
+          </div>
+          <div x-show="mobileAnalysisTab === 'wealth'" class="p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 space-y-2">
+            <div class="text-xs text-slate-400" x-text="t('wealth.netWorth')"></div>
+            <div class="text-xl font-black text-blue-500 tabular-nums" x-text="formatMoney(netWorthData.netWorth)"></div>
+          </div>
+          <div x-show="mobileAnalysisTab === 'liabilities'" class="space-y-2.5">
+            <template x-for="s in subscriptions" :key="s.id">
+              <div class="p-3.5 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold" x-text="s.name"></div>
+                  <div class="text-xs font-mono text-emerald-500" x-text="formatMoney(s.amount)"></div>
+                </div>
+                <button @click="toggleSubscription(s.id)" class="relative inline-flex h-5 w-9 items-center rounded-full cursor-pointer" :class="s.active ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'">
+                  <span :class="s.active ? 'translate-x-4' : 'translate-x-1'" class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform"></span>
+                </button>
+              </div>
+            </template>
+          </div>
+          <div x-show="mobileAnalysisTab === 'badges'" class="space-y-2.5">
+            <template x-for="b in badgesList" :key="b.id">
+              <div class="p-3.5 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" :class="[b.bgClass, b.colorClass]" x-html="badgeIconSvg(b.icon, 'w-5 h-5')"></div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex justify-between text-xs font-bold"><span x-text="lang === 'en' ? b.titleEn : b.titleId"></span><span class="font-mono" :class="b.colorClass" x-text="b.progress + '%'"></span></div>
+                  <p class="text-[11px] text-slate-400 truncate" x-text="lang === 'en' ? b.descEn : b.descId"></p>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- MOBILE PENGATURAN TAB (Includes Fortre AI Assistant + Informasi Aplikasi Accordion) -->
+        <div x-show="mobileTab === 'settings'" class="space-y-4">
+          <h2 class="text-lg font-black" x-text="lang === 'en' ? 'Settings' : 'Pengaturan'"></h2>
+          <div class="p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200/70 dark:border-slate-800/70 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <div :class="isCeritaActive() ? (hasUnseenStory ? 'story-ring-unread' : 'story-ring-seen') : ''" class="rounded-full shrink-0">
+                <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white dark:border-[#0F172A] bg-gradient-to-br from-indigo-600 to-emerald-500 text-white font-black flex items-center justify-center">
+                  <template x-if="currentUser && currentUser.avatarUrl">
+                    <img :src="currentUser.avatarUrl" alt="Avatar" class="w-full h-full object-cover">
+                  </template>
+                  <template x-if="!currentUser || !currentUser.avatarUrl">
+                    <span x-text="userAvatarText()"></span>
+                  </template>
+                </div>
+              </div>
+              <div class="min-w-0">
+                <div class="text-sm font-bold truncate" x-text="currentUser ? currentUser.fullName : ''"></div>
+                <div class="text-xs text-slate-400 truncate" x-text="currentUser ? currentUser.email : ''"></div>
+              </div>
+            </div>
+            <button @click="isProfileModalOpen = true" class="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold shrink-0 cursor-pointer" x-text="lang === 'en' ? 'Avatar' : 'Ubah Foto'"></button>
+          </div>
+
+          <!-- Cerita Fortre / Story Fortre inside Settings -->
+          <button type="button" @click="openStoryModal()" class="w-full p-4 rounded-2xl bg-gradient-to-r from-indigo-500/12 via-purple-500/10 to-emerald-500/12 border border-indigo-500/30 flex items-center justify-between gap-3 text-left cursor-pointer">
+            <div class="min-w-0">
+              <div class="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                <i data-lucide="sparkles" class="w-4 h-4 text-indigo-500"></i>
+                <span x-text="lang === 'en' ? 'Story Fortre' : 'Cerita Fortre'"></span>
+              </div>
+              <div class="text-[11px] text-slate-500 truncate" x-text="isCeritaActive() ? (lang === 'en' ? 'Live Sunday Report Available' : 'Laporan Minggu Hari Ini Aktif') : (lang === 'en' ? 'Next Sunday: ' + nextSundayIso() : 'Tayang setiap Minggu (' + nextSundayIso() + ')')"></div>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-indigo-500 shrink-0"></i>
+          </button>
+
+          <div class="p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200/70 dark:border-slate-800/70 space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-[11px] font-bold text-slate-500 block mb-1" x-text="lang === 'en' ? 'Language' : 'Bahasa'"></label>
+                <select x-model="lang" @change="saveLang()" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold">
+                  <option value="id">Indonesia (ID)</option><option value="en">English (EN)</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-slate-500 block mb-1" x-text="lang === 'en' ? 'Currency' : 'Mata Uang'"></label>
+                <select x-model="currency" @change="saveCurrency(); $nextTick(() => renderMobileCharts())" class="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold">
+                  <option value="IDR">IDR (Rp)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="SGD">SGD (S$)</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs font-bold mb-1">
+                <span x-text="lang === 'en' ? 'Savings Ratio' : 'Rasio Tabungan'"></span>
+                <span class="text-emerald-500 font-mono" x-text="targetSavingsRate + '%'"></span>
+              </div>
+              <input type="range" min="0" max="100" step="1" x-model.number="targetSavingsRate" @input="saveTargetRate()" class="w-full accent-emerald-500">
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+              <span class="text-xs font-semibold" x-text="darkMode ? (lang === 'en' ? 'Dark Mode' : 'Mode Gelap') : (lang === 'en' ? 'Light Mode' : 'Mode Terang')"></span>
+              <button @click="toggleTheme()" class="relative inline-flex h-6 w-11 items-center rounded-full bg-slate-300 dark:bg-slate-700 cursor-pointer">
+                <span :class="darkMode ? 'translate-x-6' : 'translate-x-1'" class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+              </button>
+            </div>
+            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+              <button @click="downloadExcel()" class="py-2 rounded-xl bg-emerald-500/10 text-emerald-500 font-bold cursor-pointer">Excel</button>
+              <button @click="downloadPDF()" class="py-2 rounded-xl bg-red-500/10 text-red-500 font-bold cursor-pointer">PDF</button>
+            </div>
+          </div>
+
+          <!-- Fortre AI Assistant inside Settings -->
+          <div class="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/25 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                <i data-lucide="bot" class="w-4 h-4 text-emerald-500"></i>
+                <span x-text="t('ai.title')"></span>
+              </div>
+              <div class="text-[11px] text-slate-500 truncate" x-text="lang === 'en' ? 'Ask Fortre AI about cashflow & spending' : 'Tanya asisten cerdas seputar arus kas & pengeluaran'"></div>
+            </div>
+            <button @click="isAiWidgetOpen = true" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-bold shrink-0 cursor-pointer" x-text="lang === 'en' ? 'Ask AI' : 'Tanya AI'"></button>
+          </div>
+
+          <!-- Informasi Aplikasi & Laporan Kesehatan Finansial Accordion -->
+          <div class="p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200/70 dark:border-slate-800/70 space-y-2.5">
+            <button type="button" @click="isAppInfoOpen = !isAppInfoOpen" class="w-full flex items-center justify-between text-left cursor-pointer">
+              <span class="text-xs font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <i data-lucide="info" class="w-4 h-4 text-emerald-500"></i>
+                <span x-text="lang === 'en' ? 'App Information & Financial Health Formula' : 'Informasi Aplikasi & Rumus Kesehatan Finansial'"></span>
+              </span>
+              <span x-show="isAppInfoOpen"><i data-lucide="chevron-up" class="w-4 h-4 text-slate-400"></i></span>
+              <span x-show="!isAppInfoOpen"><i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i></span>
+            </button>
+            <div x-show="isAppInfoOpen" x-transition class="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2.5 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+              <p x-text="lang === 'en' ? 'Fortre unifies daily cashflow tracking, QRIS scanner, budget guardrails, weekly Behavioral Insight stories, and net worth projections.' : 'Fortre menyatukan pencatatan arus kas, pemindai QRIS, pagu anggaran, Story wawasan mingguan, dan proyeksi kekayaan bersih.'"></p>
+              <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-800 space-y-1.5">
+                <div class="font-bold text-emerald-600 dark:text-emerald-400" x-text="lang === 'en' ? 'Financial Health Report (0-100)' : 'Laporan Kesehatan Finansial (0-100)'"></div>
+                <p x-text="lang === 'en' ? 'Calculated from 3 weighted pillars:' : 'Dihitung dari 3 komponen bobot utama:'"></p>
+                <ul class="list-disc pl-4 space-y-0.5">
+                  <li x-text="lang === 'en' ? 'Savings Ratio (Max 40 pts): Balance / Income ratio vs target.' : 'Rasio Tabungan (Maks 40 poin): Persentase tabungan dibanding target.'"></li>
+                  <li x-text="lang === 'en' ? 'Budget Adherence (Max 35 pts): Deductions for exceeded categories.' : 'Kepatuhan Anggaran (Maks 35 poin): Pengurangan jika ada kategori melebihi pagu.'"></li>
+                  <li x-text="lang === 'en' ? 'Cash Surplus Ratio (Max 25 pts): Positive income margin over expenses.' : 'Rasio Surplus Kas (Maks 25 poin): Surplus pemasukan terhadap pengeluaran.'"></li>
+                </ul>
+                <div class="pt-1 font-mono font-bold text-[10px]">Grade A (>=80) • B (60-79) • C (40-59) • D (&lt;40)</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <button @click="showResetModal = true" class="py-3 rounded-xl bg-rose-500/10 text-rose-500 font-bold text-xs cursor-pointer" x-text="lang === 'en' ? 'Reset Data' : 'Reset Data'"></button>
+            <button @click="logout()" class="py-3 rounded-xl bg-slate-900 dark:bg-slate-800 text-white font-bold text-xs cursor-pointer" x-text="lang === 'en' ? 'Sign Out' : 'Keluar Akun'"></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FIXED 5-SLOT BOTTOM NAVIGATION BAR (Beranda <-> Home + Tap Effect) -->
+      <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 safe-bottom-nav bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-xl border-t border-slate-200/70 dark:border-slate-800/70 px-2 pt-1.5 shadow-[0_-8px_30px_rgba(15,23,42,0.12)]">
+        <div class="max-w-lg mx-auto grid grid-cols-5 items-center">
+          <button @click="mobileTab = 'home'; $nextTick(() => renderMobileCharts())" :class="mobileTab === 'home' ? 'text-emerald-600 dark:text-[#E5C158] font-bold animate-nav-pop bg-emerald-500/10 dark:bg-[#E5C158]/10 rounded-2xl' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'" class="relative flex flex-col items-center justify-center gap-1 py-1.5 min-h-[44px] cursor-pointer transition-all duration-200 active:scale-90">
+            <span x-show="mobileTab === 'home'" class="absolute top-0 w-7 h-1 rounded-full bg-emerald-500 dark:bg-[#E5C158]"></span>
+            <i data-lucide="home" class="w-5 h-5"></i><span class="text-[10px]" x-text="t('mobile.home')"></span>
+          </button>
+          <button @click="mobileTab = 'transactions'" :class="mobileTab === 'transactions' ? 'text-emerald-600 dark:text-[#E5C158] font-bold animate-nav-pop bg-emerald-500/10 dark:bg-[#E5C158]/10 rounded-2xl' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'" class="relative flex flex-col items-center justify-center gap-1 py-1.5 min-h-[44px] cursor-pointer transition-all duration-200 active:scale-90">
+            <span x-show="mobileTab === 'transactions'" class="absolute top-0 w-7 h-1 rounded-full bg-emerald-500 dark:bg-[#E5C158]"></span>
+            <i data-lucide="receipt" class="w-5 h-5"></i><span class="text-[10px]" x-text="lang === 'en' ? 'Transactions' : 'Transaksi'"></span>
+          </button>
+          <div class="flex items-center justify-center">
+            <button @click="openAddModal()" class="w-14 h-14 -mt-6 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xl ring-4 ring-white dark:ring-[#0F172A] flex items-center justify-center cursor-pointer transition-transform active:scale-90">
+              <i data-lucide="plus" class="w-7 h-7"></i>
+            </button>
+          </div>
+          <button @click="mobileTab = 'analysis'" :class="mobileTab === 'analysis' ? 'text-emerald-600 dark:text-[#E5C158] font-bold animate-nav-pop bg-emerald-500/10 dark:bg-[#E5C158]/10 rounded-2xl' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'" class="relative flex flex-col items-center justify-center gap-1 py-1.5 min-h-[44px] cursor-pointer transition-all duration-200 active:scale-90">
+            <span x-show="mobileTab === 'analysis'" class="absolute top-0 w-7 h-1 rounded-full bg-emerald-500 dark:bg-[#E5C158]"></span>
+            <i data-lucide="pie-chart" class="w-5 h-5"></i><span class="text-[10px]" x-text="lang === 'en' ? 'Analysis' : 'Analisis'"></span>
+          </button>
+          <button @click="mobileTab = 'settings'" :class="mobileTab === 'settings' ? 'text-emerald-600 dark:text-[#E5C158] font-bold animate-nav-pop bg-emerald-500/10 dark:bg-[#E5C158]/10 rounded-2xl' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'" class="relative flex flex-col items-center justify-center gap-1 py-1.5 min-h-[44px] cursor-pointer transition-all duration-200 active:scale-90">
+            <span x-show="mobileTab === 'settings'" class="absolute top-0 w-7 h-1 rounded-full bg-emerald-500 dark:bg-[#E5C158]"></span>
+            <i data-lucide="settings" class="w-5 h-5"></i><span class="text-[10px]" x-text="lang === 'en' ? 'Settings' : 'Pengaturan'"></span>
+          </button>
+        </div>
+      </nav>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- TABLET RAIL & DESKTOP FLOATING COMMAND CENTER (md+ viewports)     -->
+    <!-- ================================================================= -->
+    <div class="hidden md:flex min-h-screen w-full p-3 md:p-4 lg:p-6 items-start justify-center">
+      <div class="w-full max-w-7xl mx-auto rounded-2xl bg-white/88 dark:bg-[#0F172A]/88 backdrop-blur-2xl border border-slate-200/70 dark:border-slate-800/70 shadow-2xl overflow-hidden flex flex-col min-h-[calc(100vh-3rem)]">
+
+        <!-- DESKTOP TOP HEADER: Glossy Shield Emblem + Hello, [First Name] 👋 + Subtext | Badges Strip + Theme + Story-Ring Avatar -->
+        <div class="px-5 lg:px-6 py-3.5 border-b border-slate-200/70 dark:border-slate-800/70 bg-white/75 dark:bg-[#0F172A]/75 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3 min-w-0">
+            <button type="button" @click="currentView = 'dashboard'; $nextTick(() => renderCharts())" class="w-12 h-12 shrink-0 fortre-logo-gloss flex items-center justify-center cursor-pointer transition-transform hover:scale-105" aria-label="Fortre Home">
+              <img src="/assets/aistudio/fortre-emblem-light.png" alt="Fortre Logo" class="w-full h-full object-contain dark:hidden relative z-[1]">
+              <img src="/assets/aistudio/fortre-emblem-dark.png" alt="Fortre Logo" class="w-full h-full object-contain hidden dark:block relative z-[1]">
+            </button>
+            <div class="min-w-0">
+              <div class="text-base font-black text-slate-900 dark:text-white tracking-tight truncate" x-text="'Hello, ' + firstName + ' 👋'"></div>
+              <div class="text-xs font-medium text-slate-500 dark:text-slate-400 truncate" x-text="lang === 'en' ? 'Track your finances today' : 'Pantau keuanganmu hari ini'"></div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2.5 shrink-0">
+            <button type="button" @click="currentView = 'achievements'; markBadgesSeen()" aria-label="Unlocked Badges" class="relative h-9 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 cursor-pointer">
+              <template x-for="b in unlockedBadges.slice(0, 3)" :key="b.id">
+                <span class="inline-flex items-center justify-center" :class="b.colorClass" x-html="badgeIconSvg(b.icon, 'w-3.5 h-3.5')"></span>
+              </template>
+              <span x-show="unlockedBadges.length === 0"><i data-lucide="trophy" class="w-3.5 h-3.5 text-slate-400"></i></span>
+              <span class="text-xs font-black font-mono text-slate-700 dark:text-slate-200" x-text="unlockedBadges.length + '/' + badgesList.length"></span>
+              <span x-show="hasNewBadge" class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+            </button>
+            <button type="button" @click="toggleTheme()" :aria-label="darkMode ? 'Light Mode' : 'Dark Mode'" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 flex items-center justify-center cursor-pointer transition-transform active:scale-90">
+              <span x-show="darkMode"><i data-lucide="sun" class="w-4 h-4 text-amber-400"></i></span>
+              <span x-show="!darkMode"><i data-lucide="moon" class="w-4 h-4 text-indigo-600"></i></span>
+            </button>
+            <button type="button" @click="openStoryModal()" :aria-label="lang === 'en' ? 'Story Fortre & Profile' : 'Cerita Fortre & Profil'" :class="isCeritaActive() ? (hasUnseenStory ? 'story-ring-unread' : 'story-ring-seen') : ''" class="rounded-full cursor-pointer transition-transform active:scale-90">
+              <div class="w-9 h-9 rounded-full overflow-hidden border-2 border-white dark:border-[#0F172A] bg-gradient-to-br from-indigo-600 to-emerald-500 text-white font-black text-xs flex items-center justify-center">
+                <template x-if="currentUser && currentUser.avatarUrl"><img :src="currentUser.avatarUrl" alt="Avatar" class="w-full h-full object-cover"></template>
+                <template x-if="!currentUser || !currentUser.avatarUrl"><span x-text="userAvatarText()"></span></template>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex flex-1 min-h-0">
+          <!-- COLLAPSIBLE TABLET ICON RAIL (w-20 collapsed <-> w-[272px] expanded) + PERSISTENT DESKTOP SIDEBAR (lg:w-[272px]) -->
+          <aside :class="tabletRailExpanded ? 'w-[272px]' : 'w-20'" class="lg:w-[272px] shrink-0 bg-slate-50/70 dark:bg-[#0B1120]/50 border-r border-slate-200/70 dark:border-slate-800/70 flex flex-col justify-between transition-[width] duration-200">
+            <div class="flex lg:hidden items-center px-3 pt-3" :class="tabletRailExpanded ? 'justify-end' : 'justify-center'">
+              <button id="btn-tablet-rail-toggle" type="button" @click="tabletRailExpanded = !tabletRailExpanded" :aria-label="tabletRailExpanded ? 'Collapse sidebar' : 'Expand sidebar'" class="p-2 rounded-xl bg-white dark:bg-[#0F172A] border border-slate-200/70 dark:border-slate-800/70 text-slate-500 hover:text-emerald-500 cursor-pointer">
+                <span x-show="tabletRailExpanded"><i data-lucide="panel-left-close" class="w-4 h-4"></i></span>
+                <span x-show="!tabletRailExpanded"><i data-lucide="panel-left-open" class="w-4 h-4"></i></span>
+              </button>
+            </div>
+            <nav class="flex-1 p-3 space-y-1.5 overflow-y-auto">
+              <button @click="currentView = 'dashboard'; $nextTick(() => renderCharts())" :title="t('nav.dashboard')" :class="[currentView === 'dashboard' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/40', tabletRailExpanded ? 'justify-start px-3' : 'justify-center px-2 lg:justify-start lg:px-3']" class="w-full flex items-center gap-2.5 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer">
+                <i data-lucide="layout-dashboard" class="w-4 h-4 shrink-0"></i><span :class="tabletRailExpanded ? 'inline truncate' : 'hidden lg:inline truncate'" x-text="t('nav.dashboard')"></span>
+              </button>
+              <button @click="currentView = 'transactions'" :title="t('nav.transactions')" :class="[currentView === 'transactions' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/40', tabletRailExpanded ? 'justify-start px-3' : 'justify-center px-2 lg:justify-start lg:px-3']" class="w-full flex items-center gap-2.5 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer">
+                <i data-lucide="receipt" class="w-4 h-4 shrink-0"></i><span :class="tabletRailExpanded ? 'inline truncate' : 'hidden lg:inline truncate'" x-text="t('nav.transactions')"></span>
+                <span :class="tabletRailExpanded ? 'inline-block' : 'hidden lg:inline-block'" class="ml-auto text-xs px-2 py-0.5 rounded-xl bg-slate-200 dark:bg-slate-800 font-mono shrink-0" x-text="periodTransactions.length"></span>
+              </button>
+              <button @click="currentView = 'optimization'" :title="t('nav.optimization')" :class="[currentView === 'optimization' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/40', tabletRailExpanded ? 'justify-start px-3' : 'justify-center px-2 lg:justify-start lg:px-3']" class="w-full flex items-center gap-2.5 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer">
+                <i data-lucide="sliders-horizontal" class="w-4 h-4 shrink-0"></i><span :class="tabletRailExpanded ? 'inline truncate' : 'hidden lg:inline truncate'" x-text="t('nav.optimization')"></span>
+              </button>
+              <button @click="currentView = 'wealth'; $nextTick(() => renderCompoundChart())" :title="t('nav.wealth')" :class="[currentView === 'wealth' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/40', tabletRailExpanded ? 'justify-start px-3' : 'justify-center px-2 lg:justify-start lg:px-3']" class="w-full flex items-center gap-2.5 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer">
+                <i data-lucide="trending-up" class="w-4 h-4 shrink-0"></i><span :class="tabletRailExpanded ? 'inline truncate' : 'hidden lg:inline truncate'" x-text="t('nav.wealth')"></span>
+              </button>
+              <button @click="currentView = 'liabilities'" :title="t('nav.liabilities')" :class="[currentView === 'liabilities' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/40', tabletRailExpanded ? 'justify-start px-3' : 'justify-center px-2 lg:justify-start lg:px-3']" class="w-full flex items-center gap-2.5 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer">
+                <i data-lucide="calendar-clock" class="w-4 h-4 shrink-0"></i><span :class="tabletRailExpanded ? 'inline truncate' : 'hidden lg:inline truncate'" x-text="t('nav.liabilities')"></span>
+              </button>
+              <button @click="currentView = 'exports'" :title="t('nav.exports')" :class="[currentView === 'exports' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/40', tabletRailExpanded ? 'justify-start px-3' : 'justify-center px-2 lg:justify-start lg:px-3']" class="w-full flex items-center gap-2.5 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4 shrink-0"></i><span :class="tabletRailExpanded ? 'inline truncate' : 'hidden lg:inline truncate'" x-text="t('nav.exports')"></span>
+              </button>
+              <button @click="currentView = 'achievements'; markBadgesSeen()" :title="lang === 'en' ? 'Badges & Achievements' : 'Pencapaian & Lencana'" :class="[currentView === 'achievements' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/40', tabletRailExpanded ? 'justify-start px-3' : 'justify-center px-2 lg:justify-start lg:px-3']" class="w-full flex items-center gap-2.5 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer">
+                <i data-lucide="trophy" class="w-4 h-4 text-amber-500 shrink-0"></i><span :class="tabletRailExpanded ? 'inline truncate' : 'hidden lg:inline truncate'" x-text="lang === 'en' ? 'Badges & Achievements' : 'Pencapaian & Lencana'"></span>
+              </button>
+              <button @click="currentView = 'settings'" :title="t('nav.settings')" :class="[currentView === 'settings' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/40', tabletRailExpanded ? 'justify-start px-3' : 'justify-center px-2 lg:justify-start lg:px-3']" class="w-full flex items-center gap-2.5 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer">
+                <i data-lucide="settings" class="w-4 h-4 shrink-0"></i><span :class="tabletRailExpanded ? 'inline truncate' : 'hidden lg:inline truncate'" x-text="t('nav.settings')"></span>
+              </button>
+            </nav>
+
+            <!-- Sidebar Footer -->
+            <div class="p-3 lg:p-4 border-t border-slate-200/70 dark:border-slate-800/70 space-y-3">
+              <div :class="tabletRailExpanded ? 'block' : 'hidden lg:block'" class="p-3 rounded-xl bg-white dark:bg-[#0F172A] border border-slate-200/70 dark:border-slate-800/70">
+                <div class="flex justify-between text-xs font-semibold mb-1.5">
+                  <span x-text="lang === 'en' ? 'Savings Ratio' : 'Rasio Tabungan'"></span>
+                  <span class="text-emerald-500 font-mono font-bold" x-text="targetSavingsRate + '%'"></span>
+                </div>
+                <input type="range" min="0" max="100" step="1" x-model.number="targetSavingsRate" @input="saveTargetRate()" class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg accent-emerald-500 cursor-pointer">
+              </div>
+
+              <div :class="tabletRailExpanded ? 'flex' : 'hidden lg:flex'" class="items-center justify-between px-2">
+                <span class="text-xs font-medium text-slate-600 dark:text-slate-300" x-text="syncActive ? (lang === 'en' ? 'Sync Active' : 'Sinkronisasi Aktif') : (lang === 'en' ? 'Sync Inactive' : 'Sinkronisasi Nonaktif')"></span>
+                <button @click="toggleSync()" class="relative inline-flex h-6 w-11 items-center rounded-full cursor-pointer" :class="syncActive ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'">
+                  <span :class="syncActive ? 'translate-x-6' : 'translate-x-1'" class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                </button>
+              </div>
+
+              <button @click="showResetModal = true" :title="lang === 'en' ? 'Reset Data' : 'Reset Data'" class="w-full py-2 px-3 rounded-xl text-xs font-semibold text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 flex items-center justify-center gap-2 cursor-pointer">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 shrink-0"></i>
+                <span :class="tabletRailExpanded ? 'inline' : 'hidden lg:inline'" x-text="lang === 'en' ? 'Reset Data' : 'Reset Data'"></span>
+              </button>
+            </div>
+          </aside>
+
+          <!-- MAIN VIEW CONTAINER -->
+          <main class="flex-1 min-w-0 flex flex-col">
+            <header class="sticky top-0 z-30 bg-white/90 dark:bg-[#0F172A]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-4 space-y-3">
+              <div class="flex items-center justify-between gap-2">
+                <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight" x-text="getViewSubtitle()"></h2>
+                <div class="flex items-center gap-2">
+                  <button @click="openAddModal()" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold text-xs shadow-md cursor-pointer">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span x-text="t('actions.addTransaction')"></span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 flex-nowrap overflow-x-auto no-scrollbar">
+                <div class="inline-flex shrink-0 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                  <template x-for="mode in ['daily', 'monthly', 'yearly', 'all']" :key="mode">
+                    <button @click="periodMode = mode; $nextTick(() => renderCharts())" :class="periodMode === mode ? 'bg-white dark:bg-[#0F172A] text-slate-900 dark:text-white shadow-sm font-bold' : 'text-slate-500'" class="px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer whitespace-nowrap" x-text="t('period.' + mode)"></button>
+                  </template>
+                </div>
+                <div x-show="periodMode !== 'all'" class="inline-flex shrink-0 items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1 rounded-xl">
+                  <button @click="stepPeriod(-1)" class="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 cursor-pointer"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                  <input x-show="periodMode === 'daily'" type="date" x-model="selectedDate" @change="syncFromDate()" class="fortre-date-input px-1.5 py-0.5 text-xs font-mono font-bold bg-transparent focus:outline-none cursor-pointer">
+                  <input x-show="periodMode === 'monthly'" type="month" x-model="selectedMonth" @change="syncFromMonth()" class="fortre-date-input px-1.5 py-0.5 text-xs font-mono font-bold bg-transparent focus:outline-none cursor-pointer">
+                  <input x-show="periodMode === 'yearly'" type="number" min="1990" max="2100" x-model="selectedYear" @input="syncFromYear()" class="w-16 text-center px-1 py-0.5 text-xs font-mono font-bold bg-transparent focus:outline-none">
+                  <button @click="stepPeriod(1)" class="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 cursor-pointer"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                </div>
+              </div>
+            </header>
+
+            <div class="flex-1 p-6 space-y-6">
+              <!-- VIEW 1: DASHBOARD -->
+              <div x-show="currentView === 'dashboard'" class="space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div class="lg:col-span-2 p-5 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 flex flex-col gap-4">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+                          <i data-lucide="wallet" class="w-4 h-4 text-indigo-500"></i>
+                          <span x-text="t('headerCard.netBalanceTitle')"></span>
+                        </div>
+                        <div id="desktop-merged-balance" class="text-3xl font-black mt-0.5 tabular-nums" x-text="formatMoney(periodTotals.balance)"></div>
+                      </div>
+                      <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800">
+                        <div class="w-7 h-7 rounded-lg bg-purple-500 text-white flex items-center justify-center shrink-0"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i></div>
+                        <div>
+                          <div class="text-[10px] font-semibold text-slate-500 leading-none" x-text="lang === 'en' ? 'Financial Score' : 'Skor Finansial'"></div>
+                          <div class="text-xs font-black mt-0.5" x-text="financialHealth.score + '/100'"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="relative h-60 flex-1"><canvas id="trendChart"></canvas></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                      <div class="p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/25 border border-emerald-200/80 dark:border-emerald-900/50 flex items-center justify-between gap-3">
+                        <div>
+                          <span class="text-xs font-bold text-emerald-700 dark:text-emerald-300" x-text="t('headerCard.income')"></span>
+                          <div class="text-xl font-black text-emerald-500 mt-0.5 tabular-nums" x-text="formatMoney(periodTotals.totalIncome)"></div>
+                        </div>
+                        <div class="w-9 h-9 rounded-xl bg-emerald-500 text-white shadow-md shadow-emerald-500/30 ring-2 ring-emerald-300/60 flex items-center justify-center shrink-0"><i data-lucide="arrow-down-left" class="w-5 h-5"></i></div>
+                      </div>
+                      <div class="p-3.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/25 border border-rose-200/80 dark:border-rose-900/50 flex items-center justify-between gap-3">
+                        <div>
+                          <span class="text-xs font-bold text-rose-700 dark:text-rose-300" x-text="t('headerCard.expense')"></span>
+                          <div class="text-xl font-black text-rose-500 mt-0.5 tabular-nums" x-text="formatMoney(periodTotals.totalExpense)"></div>
+                        </div>
+                        <div class="w-9 h-9 rounded-xl bg-rose-500 text-white shadow-md shadow-rose-500/30 ring-2 ring-rose-300/60 flex items-center justify-center shrink-0"><i data-lucide="arrow-up-right" class="w-5 h-5"></i></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="p-5 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200/70 dark:border-slate-800/70">
+                    <h3 class="text-sm font-bold mb-4" x-text="t('dashboard.expenseAllocation')"></h3>
+                    <div class="relative h-48"><canvas id="donutChart"></canvas></div>
+                  </div>
+                </div>
+
+                <!-- Wallet Balances (Responsive 2-col on Tablet, 3-col on Desktop) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <template x-for="w in walletBalances" :key="w.method">
+                    <div class="p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200/70 dark:border-slate-800/70 space-y-2.5">
+                      <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                          <span class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" :class="w.bgClass + ' ' + w.colorClass" x-html="walletIconSvg(w.icon, 'w-4 h-4')"></span>
+                          <span class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate" x-text="w.label"></span>
+                        </div>
+                        <span class="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0" x-text="w.pct + '%'"></span>
+                      </div>
+                      <div class="text-lg font-black font-mono tabular-nums" :class="w.balance >= 0 ? 'text-slate-900 dark:text-white' : 'text-red-500'" x-text="formatMoney(w.balance)"></div>
+                      <div class="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                        <div class="h-full rounded-full" :class="w.barClass" :style="'width:' + Math.min(100, Math.max(4, w.pct)) + '%'"></div>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <!-- VIEW 2: TRANSACTIONS -->
+              <div x-show="currentView === 'transactions'" class="space-y-4">
+                <!-- Rekap Riwayat (Synced Harian | Bulanan | Tahunan | Semua + < editable date >) -->
+                <div class="p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 space-y-3">
+                  <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <h3 class="text-xs font-black uppercase tracking-wider text-slate-500" x-text="lang === 'en' ? 'History Summary' : 'Rekap Riwayat Transaksi'"></h3>
+                    <div class="flex items-center gap-1.5 flex-nowrap">
+                      <div class="inline-flex p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800">
+                        <template x-for="mode in ['daily', 'monthly', 'yearly', 'all']" :key="mode">
+                          <button @click="periodMode = mode; $nextTick(() => renderCharts())" :class="periodMode === mode ? 'bg-emerald-500 text-white font-bold shadow-xs' : 'text-slate-500'" class="px-2.5 py-1 rounded-lg text-xs cursor-pointer whitespace-nowrap" x-text="t('period.' + mode)"></button>
+                        </template>
+                      </div>
+                      <div x-show="periodMode !== 'all'" class="inline-flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl">
+                        <button @click="stepPeriod(-1)" class="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 cursor-pointer"><i data-lucide="chevron-left" class="w-3.5 h-3.5"></i></button>
+                        <input x-show="periodMode === 'daily'" type="date" x-model="selectedDate" @change="syncFromDate()" class="fortre-date-input px-1 py-0.5 text-xs font-mono font-bold bg-transparent focus:outline-none cursor-pointer">
+                        <input x-show="periodMode === 'monthly'" type="month" x-model="selectedMonth" @change="syncFromMonth()" class="fortre-date-input px-1 py-0.5 text-xs font-mono font-bold bg-transparent focus:outline-none cursor-pointer">
+                        <input x-show="periodMode === 'yearly'" type="number" min="1990" max="2100" x-model="selectedYear" @input="syncFromYear()" class="w-16 text-center px-1 py-0.5 text-xs font-mono font-bold bg-transparent focus:outline-none">
+                        <button @click="stepPeriod(1)" class="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 cursor-pointer"><i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                    <template x-for="row in historySummaryRows.slice(0, 6)" :key="row.key">
+                      <button type="button" @click="jumpToHistoryPeriod(row.key)" class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-xs cursor-pointer hover:border-emerald-500/40">
+                        <span class="font-mono font-bold truncate" x-text="row.label + ' (' + row.count + ')'"></span>
+                        <span class="font-mono font-bold shrink-0" :class="row.net >= 0 ? 'text-emerald-500' : 'text-rose-500'" x-text="(row.net >= 0 ? '+' : '') + formatMoney(row.net)"></span>
+                      </button>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- Riwayat Cerita Fortre (Moved to Transactions) -->
+                <div class="p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 space-y-3">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5"><i data-lucide="history" class="w-4 h-4 text-emerald-500"></i><span x-text="lang === 'en' ? 'Story Fortre History' : 'Riwayat Cerita Fortre'"></span></h3>
+                    <span class="text-[11px] text-slate-400" x-text="lang === 'en' ? 'Weekly Behavioral Archive' : 'Arsip Laporan Mingguan'"></span>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                    <template x-for="st in weeklyStories" :key="st.weekKey">
+                      <button type="button" @click="openStoryModal(st.weekKey)" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2 text-left cursor-pointer hover:border-emerald-500/40">
+                        <div class="min-w-0">
+                          <div class="text-xs font-bold truncate" x-text="st.rangeLabel"></div>
+                          <div class="text-[10px] text-slate-400 truncate" x-text="st.topCat"></div>
+                        </div>
+                        <span class="text-xs font-mono font-bold text-emerald-500 shrink-0" x-text="formatMoney(st.netFlow)"></span>
+                      </button>
+                    </template>
+                  </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 space-y-3">
+                  <div class="flex gap-3">
+                    <input type="text" x-model="searchQuery" @keydown.enter="addRecentSearch(searchQuery)" :placeholder="t('transactions.searchPlaceholder')" class="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                    <select x-model="filterType" class="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                      <option value="all" x-text="t('transactions.allTypes')"></option>
+                      <option value="income" x-text="t('transactions.incomeOnly')"></option>
+                      <option value="expense" x-text="t('transactions.expenseOnly')"></option>
+                    </select>
+                  </div>
+                  <template x-if="recentSearches.length > 0">
+                    <div class="flex items-center gap-1.5 flex-wrap text-xs">
+                      <template x-for="term in recentSearches" :key="term">
+                        <span @click="searchQuery = term" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 cursor-pointer" x-text="term"></span>
+                      </template>
+                    </div>
+                  </template>
+                </div>
+                <div class="rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 overflow-hidden">
+                  <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50 dark:bg-slate-900/60 text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                      <tr><th class="py-3 px-4" x-text="t('transactions.colDate')"></th><th class="py-3 px-4" x-text="t('transactions.colDesc')"></th><th class="py-3 px-4" x-text="lang === 'en' ? 'Purchase Location' : 'Tempat Pembelian'"></th><th class="py-3 px-4" x-text="t('transactions.colCat')"></th><th class="py-3 px-4 text-right" x-text="t('transactions.colAmount')"></th><th class="py-3 px-4 text-center" x-text="t('transactions.colAction')"></th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                      <template x-for="tx in filteredTransactions()" :key="tx.id">
+                        <tr>
+                          <td class="py-3 px-4 font-mono text-slate-500" x-text="tx.date"></td>
+                          <td class="py-3 px-4 font-semibold">
+                            <div class="flex items-center gap-2">
+                              <span class="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[10px] font-black shrink-0" :style="'background:' + getBrandMeta(tx.description).bg" x-text="getBrandMeta(tx.description).abbr"></span>
+                              <span x-text="tx.description"></span>
+                            </div>
+                          </td>
+                          <td class="py-3 px-4 text-slate-500" x-text="tx.purchaseLocation || '—'"></td>
+                          <td class="py-3 px-4" x-text="tx.category"></td>
+                          <td class="py-3 px-4 text-right font-mono font-bold" :class="tx.type === 'income' ? 'text-emerald-500' : 'text-red-500'" x-text="(tx.type === 'income' ? '+ ' : '- ') + formatMoney(tx.amount)"></td>
+                          <td class="py-3 px-4 text-center">
+                            <div class="inline-flex items-center gap-2">
+                              <button @click="startEditTransaction(tx)" aria-label="Edit transaction" class="text-slate-400 hover:text-emerald-500 cursor-pointer"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+                              <button @click="deleteTransaction(tx.id)" aria-label="Delete transaction" class="text-slate-400 hover:text-red-500 cursor-pointer"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            </div>
+                          </td>
+                        </tr>
+                      </template>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- VIEW 3: OPTIMIZATION -->
+              <div x-show="currentView === 'optimization'" class="space-y-4">
+                <div class="p-6 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <template x-for="b in budgetStatuses.items" :key="b.category">
+                    <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                      <div class="flex justify-between text-xs font-bold mb-2"><span x-text="b.category"></span><span x-text="b.percentage + '%'"></span></div>
+                      <div class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden"><div class="h-full bg-emerald-500" :style="'width:' + Math.min(100, b.percentage) + '%'"></div></div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <!-- VIEW 4: WEALTH -->
+              <div x-show="currentView === 'wealth'" class="space-y-4">
+                <div class="p-6 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200/70 dark:border-slate-800/70 space-y-4">
+                  <h3 class="text-base font-bold" x-text="t('wealth.netWorthTitle')"></h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="p-4 rounded-xl bg-emerald-500/10"><div class="text-xs" x-text="t('wealth.totalAssets')"></div><div class="text-xl font-black" x-text="formatMoney(netWorthData.totalAssets)"></div></div>
+                    <div class="p-4 rounded-xl bg-red-500/10"><div class="text-xs" x-text="t('wealth.totalLiabilities')"></div><div class="text-xl font-black" x-text="formatMoney(netWorthData.totalLiabilities)"></div></div>
+                    <div class="p-4 rounded-xl bg-blue-500/10"><div class="text-xs" x-text="t('wealth.netWorth')"></div><div class="text-xl font-black text-blue-500" x-text="formatMoney(netWorthData.netWorth)"></div></div>
+                  </div>
+                  <div class="relative h-56"><canvas id="compoundChart"></canvas></div>
+                </div>
+              </div>
+
+              <!-- VIEW 5: LIABILITIES -->
+              <div x-show="currentView === 'liabilities'" class="space-y-4">
+                <div class="p-6 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200/70 dark:border-slate-800/70 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <template x-for="s in subscriptions" :key="s.id">
+                    <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                      <div class="flex justify-between mb-2"><span class="text-xs font-bold" x-text="s.name"></span><button @click="toggleSubscription(s.id)" class="relative inline-flex h-5 w-9 items-center rounded-full cursor-pointer" :class="s.active ? 'bg-emerald-500' : 'bg-slate-400'"><span :class="s.active ? 'translate-x-4' : 'translate-x-1'" class="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform"></span></button></div>
+                      <div class="text-sm font-black font-mono" x-text="formatMoney(s.amount)"></div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <!-- VIEW 6: EXPORTS -->
+              <div x-show="currentView === 'exports'" class="p-6 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200/70 dark:border-slate-800/70 grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <button @click="downloadExcel()" class="p-4 rounded-xl bg-emerald-500 text-white font-bold text-xs cursor-pointer">Excel (.xlsx)</button>
+                <button @click="downloadCSV()" class="p-4 rounded-xl bg-blue-600 text-white font-bold text-xs cursor-pointer">CSV (.csv)</button>
+                <button @click="downloadPDF()" class="p-4 rounded-xl bg-red-600 text-white font-bold text-xs cursor-pointer">PDF (.pdf)</button>
+                <button @click="forceBackupJSON()" class="p-4 rounded-xl bg-amber-500 text-white font-bold text-xs cursor-pointer">Backup JSON</button>
+              </div>
+
+              <!-- VIEW 7: ACHIEVEMENTS (6 Distinct Icons & Accent Colors) -->
+              <div x-show="currentView === 'achievements'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <template x-for="b in badgesList" :key="b.id">
+                  <div class="p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" :class="[b.bgClass, b.colorClass]" x-html="badgeIconSvg(b.icon, 'w-5 h-5')"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex justify-between text-xs font-bold mb-1"><span x-text="lang === 'en' ? b.titleEn : b.titleId"></span><span class="font-mono" :class="b.colorClass" x-text="b.progress + '%'"></span></div>
+                      <p class="text-[11px] text-slate-400" x-text="lang === 'en' ? b.descEn : b.descId"></p>
+                    </div>
+                  </div>
+                </template>
+              </div>
+
+              <!-- VIEW 8: SETTINGS / PENGATURAN -->
+              <div x-show="currentView === 'settings'" class="space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div class="p-6 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 space-y-4">
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="flex items-center gap-3 min-w-0">
+                        <div :class="isCeritaActive() ? (hasUnseenStory ? 'story-ring-unread' : 'story-ring-seen') : ''" class="rounded-full shrink-0">
+                          <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white dark:border-[#0F172A] bg-gradient-to-br from-indigo-600 to-emerald-500 text-white font-black flex items-center justify-center">
+                            <template x-if="currentUser && currentUser.avatarUrl"><img :src="currentUser.avatarUrl" alt="Avatar" class="w-full h-full object-cover"></template>
+                            <template x-if="!currentUser || !currentUser.avatarUrl"><span x-text="userAvatarText()"></span></template>
+                          </div>
+                        </div>
+                        <div class="min-w-0">
+                          <div class="text-sm font-black truncate" x-text="currentUser ? currentUser.fullName : ''"></div>
+                          <div class="text-xs text-slate-400 truncate" x-text="currentUser ? currentUser.email : ''"></div>
+                        </div>
+                      </div>
+                      <button @click="isProfileModalOpen = true" class="px-3 py-1.5 rounded-xl bg-emerald-500 text-white text-xs font-bold cursor-pointer" x-text="lang === 'en' ? 'Change Photo / Avatar' : 'Ubah Foto / Avatar'"></button>
+                    </div>
+                    <div class="p-4 rounded-xl bg-gradient-to-r from-indigo-500/10 to-emerald-500/10 border border-indigo-500/25 flex items-center justify-between gap-3">
+                      <div>
+                        <div class="text-xs font-black flex items-center gap-1.5"><i data-lucide="sparkles" class="w-4 h-4 text-indigo-500"></i><span x-text="lang === 'en' ? 'Story Fortre' : 'Cerita Fortre'"></span></div>
+                        <div class="text-[11px] text-slate-500" x-text="isCeritaActive() ? (lang === 'en' ? 'Live Sunday Report Available' : 'Laporan Minggu Hari Ini Aktif') : (lang === 'en' ? 'Every Sunday 00:00–23:59 • Next: ' + nextSundayIso() : 'Setiap Minggu 00:00–23:59 • Berikutnya: ' + nextSundayIso())"></div>
+                      </div>
+                      <button @click="openStoryModal()" class="px-3.5 py-2 rounded-xl bg-indigo-500 text-white text-xs font-bold shrink-0 cursor-pointer" x-text="lang === 'en' ? 'Open Story' : 'Buka Cerita'"></button>
+                    </div>
+                    <div class="p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/25 flex items-center justify-between gap-3">
+                      <div>
+                        <div class="text-xs font-black flex items-center gap-1.5"><i data-lucide="bot" class="w-4 h-4 text-emerald-500"></i><span x-text="t('ai.title')"></span></div>
+                        <div class="text-[11px] text-slate-500" x-text="lang === 'en' ? 'Ask Fortre AI about your financial health & budgets' : 'Tanya asisten cerdas seputar arus kas & anggaran'"></div>
+                      </div>
+                      <button @click="isAiWidgetOpen = true" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-bold shrink-0 cursor-pointer" x-text="lang === 'en' ? 'Open AI' : 'Buka AI'"></button>
+                    </div>
+                    <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-between">
+                      <button @click="showResetModal = true" class="px-4 py-2 rounded-xl bg-rose-500/10 text-rose-500 text-xs font-bold cursor-pointer" x-text="lang === 'en' ? 'Reset Data' : 'Reset Data'"></button>
+                      <button @click="logout()" class="px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 text-white text-xs font-bold cursor-pointer" x-text="lang === 'en' ? 'Sign Out' : 'Keluar Akun'"></button>
+                    </div>
+                  </div>
+                  <div class="p-6 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                      <div>
+                        <label class="text-xs font-bold block mb-1" x-text="lang === 'en' ? 'Language' : 'Bahasa'"></label>
+                        <select x-model="lang" @change="saveLang()" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold">
+                          <option value="id">Indonesia (ID)</option><option value="en">English (EN)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="text-xs font-bold block mb-1" x-text="lang === 'en' ? 'Currency' : 'Mata Uang'"></label>
+                        <select x-model="currency" @change="saveCurrency(); $nextTick(() => { renderCharts(); renderMobileCharts(); renderCompoundChart(); })" class="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold">
+                          <option value="IDR">IDR (Rp)</option><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="SGD">SGD (S$)</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
+                      <span class="text-xs font-semibold" x-text="darkMode ? (lang === 'en' ? 'Dark Mode' : 'Mode Gelap') : (lang === 'en' ? 'Light Mode' : 'Mode Terang')"></span>
+                      <button @click="toggleTheme()" class="relative inline-flex h-6 w-11 items-center rounded-full bg-slate-300 dark:bg-slate-700 cursor-pointer"><span :class="darkMode ? 'translate-x-6' : 'translate-x-1'" class="inline-block h-4 w-4 rounded-full bg-white transition-transform"></span></button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Informasi Aplikasi & Laporan Kesehatan Finansial Accordion -->
+                <div class="p-6 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 space-y-3">
+                  <button type="button" @click="isAppInfoOpen = !isAppInfoOpen" class="w-full flex items-center justify-between text-left cursor-pointer">
+                    <span class="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                      <i data-lucide="info" class="w-4 h-4 text-emerald-500"></i>
+                      <span x-text="lang === 'en' ? 'App Information & Financial Health Report Formula' : 'Informasi Aplikasi & Rumus Laporan Kesehatan Finansial'"></span>
+                    </span>
+                    <span x-show="isAppInfoOpen"><i data-lucide="chevron-up" class="w-4 h-4 text-slate-400"></i></span>
+                    <span x-show="!isAppInfoOpen"><i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i></span>
+                  </button>
+                  <div x-show="isAppInfoOpen" x-transition class="pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    <div class="space-y-1.5">
+                      <div class="font-bold text-slate-900 dark:text-white" x-text="lang === 'en' ? 'Core Fortre Capabilities' : 'Fitur Utama Fortre'"></div>
+                      <p x-text="lang === 'en' ? 'Real-time cashflow trends, QRIS scanner & merchant aliases, budget threshold monitoring, net worth & compound growth projections, and weekly Behavioral Insights stories.' : 'Tren arus kas sinkron periode, pemindai QRIS & alias merchant, pengawas pagu anggaran, kalkulator kekayaan bersih, serta Story wawasan perilaku mingguan.'"></p>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-800 space-y-1.5">
+                      <div class="font-bold text-emerald-600 dark:text-emerald-400" x-text="lang === 'en' ? 'Financial Health Report (0-100 Score)' : 'Laporan Kesehatan Finansial (Skor 0-100)'"></div>
+                      <ul class="list-disc pl-4 space-y-0.5 text-[11px]">
+                        <li x-text="lang === 'en' ? 'Savings Ratio (40 pts): Actual vs target savings rate' : 'Rasio Tabungan (40 poin): Persentase tabungan aktual vs target'"></li>
+                        <li x-text="lang === 'en' ? 'Budget Adherence (35 pts): Zero exceeded budget categories' : 'Kepatuhan Anggaran (35 poin): Kategori tetap di bawah pagu'"></li>
+                        <li x-text="lang === 'en' ? 'Cash Surplus Ratio (25 pts): Positive monthly cashflow cushion' : 'Rasio Surplus Kas (25 poin): Margin surplus pemasukan bersih'"></li>
+                      </ul>
+                      <div class="font-mono font-bold text-[11px]">Grade A (>=80) • Grade B (60-79) • Grade C (40-59) • Grade D (&lt;40)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI ASSISTANT MODAL (Launched from Settings - No floating overlay button) -->
+    <div x-show="isAiWidgetOpen" x-transition class="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm">
+      <div @click.away="isAiWidgetOpen = false" class="w-full max-w-md rounded-t-3xl md:rounded-2xl mobile-bottom-sheet bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col" style="height: 440px;">
+        <div class="w-10 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto my-2 md:hidden"></div>
+        <div class="p-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex items-center justify-between">
+          <span class="text-xs font-bold flex items-center gap-2"><i data-lucide="bot" class="w-4 h-4"></i><span x-text="t('ai.title')"></span></span>
+          <button @click="isAiWidgetOpen = false" class="cursor-pointer"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-3 space-y-2 text-xs">
+          <template x-for="(m, i) in chatMessages" :key="i">
+            <div :class="m.sender === 'user' ? 'text-right' : 'text-left'">
+              <div :class="m.sender === 'user' ? 'bg-emerald-500 text-white inline-block' : 'bg-slate-100 dark:bg-slate-800 inline-block'" class="rounded-xl px-3 py-2 max-w-[85%]" x-text="m.text"></div>
+            </div>
+          </template>
+        </div>
+        <div class="p-2.5 border-t border-slate-200 dark:border-slate-800 flex gap-2">
+          <input type="text" x-model="chatInput" @keydown.enter="sendChat()" :placeholder="t('ai.inputPlaceholder')" class="flex-1 px-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+          <button @click="sendChat()" class="px-3 py-1.5 bg-emerald-500 text-white rounded-xl text-xs font-bold cursor-pointer">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CERITA FORTRE / STORY FORTRE MODAL (1 Unified Screen — Sunday 00:00-23:59) -->
+    <div x-show="isStoryModalOpen" x-transition class="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/75 backdrop-blur-md">
+      <div @click.away="isStoryModalOpen = false; selectedStoryWeekKey = null" class="w-full max-w-md rounded-t-3xl md:rounded-2xl mobile-bottom-sheet bg-gradient-to-br from-slate-900 via-[#0F172A] to-indigo-950 text-white border border-white/15 shadow-2xl overflow-hidden flex flex-col">
+        <div class="w-10 h-1.5 rounded-full bg-white/30 mx-auto mt-2.5 mb-0.5 md:hidden"></div>
+        <div class="p-5 flex items-center justify-between border-b border-white/10">
+          <div>
+            <div class="text-base font-black tracking-tight" x-text="lang === 'en' ? 'Story Fortre' : 'Cerita Fortre'"></div>
+            <div class="text-[11px] text-emerald-300 font-semibold" x-text="activeStory ? activeStory.rangeLabel : ''"></div>
+          </div>
+          <button @click="isStoryModalOpen = false; selectedStoryWeekKey = null" class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white cursor-pointer"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+
+        <div x-show="!isCeritaActive() && !selectedStoryWeekKey" class="mx-5 mt-4 p-3 rounded-2xl bg-amber-500/15 border border-amber-400/35 text-xs text-amber-100" x-text="lang === 'en' ? 'Live Story Fortre goes active automatically every Sunday (00:00–23:59). Next live Sunday: ' + nextSundayIso() + '. Past stories are saved in Transactions.' : 'Cerita Fortre live otomatis aktif setiap hari Minggu (00:00–23:59). Minggu berikutnya: ' + nextSundayIso() + '. Arsip mingguan tersedia di Transaksi.'"></div>
+
+        <template x-if="activeStory">
+          <div class="p-5 space-y-4">
+            <div class="p-4 rounded-2xl bg-gradient-to-br from-indigo-600/30 via-teal-600/20 to-emerald-500/25 border border-white/15">
+              <div class="text-[11px] uppercase tracking-wider text-emerald-200 font-bold" x-text="activeStory.headline"></div>
+              <div class="text-2xl font-black font-mono mt-1" x-text="formatMoney(activeStory.netFlow)"></div>
+              <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-white/15 text-xs">
+                <div>
+                  <div class="text-[10px] text-emerald-200" x-text="t('headerCard.income')"></div>
+                  <div class="font-bold font-mono" x-text="formatMoney(activeStory.income)"></div>
+                </div>
+                <div>
+                  <div class="text-[10px] text-rose-200" x-text="t('headerCard.expense')"></div>
+                  <div class="font-bold font-mono" x-text="formatMoney(activeStory.expense)"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5 text-xs">
+              <div class="p-3 rounded-2xl bg-white/10 border border-white/10">
+                <div class="text-[10px] text-white/70" x-text="lang === 'en' ? 'Top Category' : 'Pos Terbesar'"></div>
+                <div class="font-bold truncate mt-0.5" x-text="activeStory.topCat"></div>
+              </div>
+              <div class="p-3 rounded-2xl bg-white/10 border border-white/10">
+                <div class="text-[10px] text-white/70" x-text="lang === 'en' ? 'Savings Ratio' : 'Rasio Tabungan'"></div>
+                <div class="font-bold font-mono mt-0.5" x-text="activeStory.savingsRate + '% (' + activeStory.txCount + ' Tx)'"></div>
+              </div>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 text-xs text-emerald-100 leading-relaxed" x-text="activeStory.tip"></div>
+
+            <div class="flex items-center justify-between gap-2 pt-2 border-t border-white/10">
+              <button type="button" @click="isStoryModalOpen = false; selectedStoryWeekKey = null; currentView = 'transactions'; mobileTab = 'transactions'" class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold cursor-pointer" x-text="lang === 'en' ? 'Story History in Transactions' : 'Riwayat di Transaksi'"></button>
+              <button type="button" @click="isStoryModalOpen = false; selectedStoryWeekKey = null; isProfileModalOpen = true" class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black cursor-pointer" x-text="lang === 'en' ? 'Edit Avatar' : 'Ubah Foto'"></button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- CATAT / EDIT TRANSAKSI MODAL (With Branded Amount Symbols Keypad + Tempat Pembelian, NO Notes) -->
+    <div x-show="isAddModalOpen" x-transition class="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm">
+      <div @click.away="isAddModalOpen = false; editingTxId = null" class="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-t-3xl md:rounded-2xl mobile-bottom-sheet shadow-2xl p-5 md:p-6">
+        <div class="w-10 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto mb-3 md:hidden"></div>
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <h3 class="text-base font-bold" x-text="editingTxId ? (lang === 'en' ? 'Edit Transaction' : 'Edit Transaksi') : (lang === 'en' ? 'Record New Transaction' : 'Catat Transaksi Baru')"></h3>
+          <button @click="isAddModalOpen = false; editingTxId = null" class="text-slate-400 cursor-pointer"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div class="mt-3 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+          <span class="text-xs font-bold" x-text="lang === 'en' ? 'Scan QRIS / Barcode' : 'Pindai QRIS / Barcode'"></span>
+          <span class="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 whitespace-nowrap shrink-0">QRIS</span>
+        </div>
+        <form @submit.prevent="addTransaction()" class="space-y-3 pt-3">
+          <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+            <button type="button" @click="formTx.type = 'expense'" :class="formTx.type === 'expense' ? 'bg-red-500 text-white font-bold' : 'text-slate-500'" class="py-1.5 text-xs rounded-lg cursor-pointer" x-text="t('headerCard.expense')"></button>
+            <button type="button" @click="formTx.type = 'income'" :class="formTx.type === 'income' ? 'bg-emerald-500 text-white font-bold' : 'text-slate-500'" class="py-1.5 text-xs rounded-lg cursor-pointer" x-text="t('headerCard.income')"></button>
+          </div>
+          <input type="text" required x-model="formTx.description" :placeholder="t('transactions.colDesc')" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+          <input type="text" x-model="formTx.purchaseLocation" :placeholder="lang === 'en' ? 'Purchase Location (e.g. Starbucks, Tokopedia)' : 'Tempat Pembelian (cth: Indomaret, Tokopedia)'" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+          <!-- Branded Amount Input Keypad with Symbols -->
+          <div class="rounded-2xl border border-slate-200 dark:border-[#E5C158]/25 bg-slate-50 dark:bg-[#0B1120] p-3 space-y-2">
+            <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-700">
+              <span class="px-2 py-0.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 dark:from-[#E5C158] dark:to-amber-500 text-white dark:text-slate-950 font-black text-xs" x-text="currencySymbol()"></span>
+              <input type="text" required x-model="amountExpr" class="w-full bg-transparent text-base font-black font-mono text-slate-900 dark:text-[#E5C158] focus:outline-none tabular-nums">
+            </div>
+            <div class="grid grid-cols-4 gap-1.5 text-xs font-bold font-mono">
+              <button type="button" @click="keypadPress('7')" class="py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer">7</button>
+              <button type="button" @click="keypadPress('8')" class="py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer">8</button>
+              <button type="button" @click="keypadPress('9')" class="py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer">9</button>
+              <button type="button" @click="keypadPress('÷')" class="py-1.5 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 cursor-pointer">÷</button>
+              <button type="button" @click="keypadPress('4')" class="py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer">4</button>
+              <button type="button" @click="keypadPress('5')" class="py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer">5</button>
+              <button type="button" @click="keypadPress('6')" class="py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer">6</button>
+              <button type="button" @click="keypadPress('×')" class="py-1.5 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 cursor-pointer">×</button>
+              <button type="button" @click="keypadPress('1')" class="py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer">1</button>
+              <button type="button" @click="keypadPress('2')" class="py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer">2</button>
+              <button type="button" @click="keypadPress('3')" class="py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer">3</button>
+              <button type="button" @click="keypadPress('-')" class="py-1.5 rounded-xl bg-rose-500/15 text-rose-500 cursor-pointer">−</button>
+              <button type="button" @click="amountExpr = ''" class="py-1.5 rounded-xl bg-rose-500/10 text-rose-500 cursor-pointer">C</button>
+              <button type="button" @click="keypadPress('0')" class="py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer">0</button>
+              <button type="button" @click="keypadPress('000')" class="py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer">000</button>
+              <button type="button" @click="keypadPress('+')" class="py-1.5 rounded-xl bg-emerald-500/15 text-emerald-500 cursor-pointer">+</button>
+              <button type="button" @click="amountExpr = amountExpr.slice(0, -1)" class="col-span-2 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800 cursor-pointer" x-text="lang === 'en' ? 'Del' : 'Hapus'"></button>
+              <button type="button" @click="evaluateKeypad()" class="col-span-2 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 dark:from-[#E5C158] dark:to-amber-500 text-white dark:text-slate-950 font-black cursor-pointer">=</button>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <select x-model="formTx.category" class="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+              <option value="Makanan & Minuman">Makanan & Minuman</option><option value="Transportasi">Transportasi</option><option value="Tagihan">Tagihan</option><option value="Belanja">Belanja</option><option value="Hiburan">Hiburan</option><option value="Gaji">Gaji</option><option value="Investasi">Investasi</option><option value="Lainnya">Lainnya</option>
+            </select>
+            <select x-model="formTx.paymentMethod" class="px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+              <option value="Transfer Bank">Transfer Bank</option><option value="QRIS">QRIS</option><option value="Cash">Cash</option>
+            </select>
+          </div>
+          <input type="date" required x-model="formTx.date" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+          <div class="pt-2 flex justify-end gap-2">
+            <button type="button" @click="isAddModalOpen = false; editingTxId = null" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold cursor-pointer" x-text="t('actions.cancel')"></button>
+            <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-500 text-white font-semibold text-xs cursor-pointer" x-text="t('actions.save')"></button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- PROFILE & AVATAR STUDIO MODAL -->
+    <div x-show="isProfileModalOpen" x-transition class="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm">
+      <div @click.away="isProfileModalOpen = false" class="w-full max-w-md bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-t-3xl md:rounded-2xl mobile-bottom-sheet shadow-2xl p-5 md:p-6 space-y-4">
+        <div class="w-10 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto mb-1 md:hidden"></div>
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <h3 class="text-base font-black" x-text="lang === 'en' ? 'Profile & Avatar Studio' : 'Profil & Studio Avatar'"></h3>
+          <button @click="isProfileModalOpen = false" class="text-slate-400 cursor-pointer"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div>
+          <label class="text-xs font-bold block mb-1" x-text="lang === 'en' ? 'Display Name' : 'Nama Tampilan'"></label>
+          <input type="text" x-model="profileNameInput" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+        </div>
+        <div class="space-y-2">
+          <div class="text-xs font-bold" x-text="lang === 'en' ? 'Upload Photo or Choose Avatar' : 'Unggah Foto atau Pilih Avatar'"></div>
+          <input type="file" accept="image/*" @change="handleAvatarUpload($event)" class="text-xs w-full">
+          <div class="grid grid-cols-4 gap-2">
+            <template x-for="av in ['🛡️','💎','🚀','🦊','🐼','👑','🦉','🐱']" :key="av">
+              <button type="button" @click="profileEmojiInput = av; profileUrlInput = ''" :class="profileEmojiInput === av && !profileUrlInput ? 'ring-2 ring-emerald-500 bg-emerald-500/10' : 'bg-slate-100 dark:bg-slate-800'" class="py-2 rounded-xl text-lg cursor-pointer" x-text="av"></button>
+            </template>
+          </div>
+        </div>
+        <div class="flex justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
+          <button type="button" @click="isProfileModalOpen = false; logout()" class="px-3 py-2 rounded-xl bg-rose-500/10 text-rose-500 text-xs font-bold cursor-pointer" x-text="lang === 'en' ? 'Sign Out' : 'Keluar Akun'"></button>
+          <button type="button" @click="saveProfileModal()" class="px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold cursor-pointer" x-text="lang === 'en' ? 'Save Profile' : 'Simpan Profil'"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESET DATA CONFIRMATION MODAL -->
+    <template x-if="showResetModal">
+      <div class="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm">
+        <div class="w-full max-w-md bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-t-3xl md:rounded-2xl mobile-bottom-sheet shadow-2xl p-5 md:p-6 space-y-4">
+          <div class="w-10 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto mb-1 md:hidden"></div>
+          <h3 class="text-base font-bold text-slate-900 dark:text-white" x-text="lang === 'en' ? 'Confirm Financial Data Reset?' : 'Konfirmasi Reset Data Finansial?'"></h3>
+          <p class="text-xs text-slate-500" x-text="lang === 'en' ? 'All transactions, goals, assets, and liabilities will be wiped to zero (0 items).' : 'Seluruh data transaksi, tabungan, aset, dan kewajiban akan dihapus ke 0.'"></p>
+          <div class="flex justify-end gap-2">
+            <button @click="showResetModal = false" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold cursor-pointer" x-text="t('actions.cancel')"></button>
+            <button @click="resetAllData()" class="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold text-xs cursor-pointer" x-text="lang === 'en' ? 'Reset All to 0' : 'Ya, Reset ke 0'"></button>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <script>
+    // =========================================================================
+    // SUPABASE CONFIGURATION
+    // Paste your Supabase Project URL and Anon Key below to enable Cloud Auth
+    // and database synchronization. When left empty (''), Fortre seamlessly
+    // falls back to localStorage so all features work immediately offline.
+    // =========================================================================
+    const SUPABASE_URL = 'https://mrvpjkgcbdqbuvgdbabz.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_MgNRbA2XbT3quTN-R2ZGHg_xxUOfmZG';
+
+    let supabaseClient = null;
+    if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+
+    function fortreApp() {
+      return {
+        currentUser: null,
+        authView: 'login',
+        authForm: { fullName: '', email: '', password: '' },
+        authFeedback: null,
+        currentView: 'dashboard',
+        mobileTab: 'home',
+        mobileAnalysisTab: 'budgets',
+        tabletRailExpanded: false,
+        darkMode: true,
+        currency: 'IDR',
+        lang: 'id',
+        periodMode: 'monthly',
+        selectedDate: '2026-11-04',
+        selectedMonth: '2026-11',
+        selectedYear: '2026',
+        targetSavingsRate: 30,
+        showEmergencyWarning: true,
+        showResetModal: false,
+        syncActive: true,
+        recentSearches: ['Gaji', 'Makan Siang', 'Investasi'],
+        searchQuery: '',
+        filterType: 'all',
+        filterMethod: 'all',
+        isAddModalOpen: false,
+        editingTxId: null,
+        isProfileModalOpen: false,
+        isAppInfoOpen: false,
+        isStoryModalOpen: false,
+        selectedStoryWeekKey: null,
+        seenStories: JSON.parse(localStorage.getItem('fortre_seen_stories') || '[]'),
+        seenBadges: JSON.parse(localStorage.getItem('fortre_seen_badges') || '[]'),
+        profileNameInput: '',
+        profileEmojiInput: '',
+        profileUrlInput: '',
+        amountExpr: '50000',
+        isAiWidgetOpen: false,
+        chatInput: '',
+        chatMessages: [{ sender: 'assistant', text: 'Halo! Saya asisten finansial pintar Fortre.' }],
+        formTx: { description: '', purchaseLocation: '', amount: 50000, type: 'expense', category: 'Makanan & Minuman', paymentMethod: 'Transfer Bank', date: '2026-11-04' },
+        transactions: [
+          { id: 'tx-1', description: 'Gaji Kantor Tech', purchaseLocation: 'Transfer Payroll', amount: 15000000, type: 'income', category: 'Gaji', paymentMethod: 'Transfer Bank', date: '2026-11-01' },
+          { id: 'tx-2', description: 'Belanja Shopee Flash Sale', purchaseLocation: 'Shopee Mall', amount: 1850000, type: 'expense', category: 'Belanja', paymentMethod: 'Transfer Bank', date: '2026-11-02' },
+          { id: 'tx-3', description: 'Kopi & Makan Siang Gojek', purchaseLocation: 'Kopi Kenangan', amount: 145000, type: 'expense', category: 'Makanan & Minuman', paymentMethod: 'QRIS', date: '2026-11-03' },
+          { id: 'tx-4', description: 'Bensin & Tol Mobil', purchaseLocation: 'SPBU Pertamina', amount: 350000, type: 'expense', category: 'Transportasi', paymentMethod: 'Cash', date: '2026-11-03' },
+          { id: 'tx-5', description: 'Project Freelance Design', purchaseLocation: 'Studio Klien', amount: 3500000, type: 'income', category: 'Investasi', paymentMethod: 'Transfer Bank', date: '2026-11-04' }
+        ],
+        savingsGoals: [
+          { id: 'g1', title: 'Dana Darurat 6 Bulan', targetAmount: 30000000, currentAmount: 18500000 },
+          { id: 'g2', title: 'Liburan Akhir Tahun', targetAmount: 15000000, currentAmount: 8500000 }
+        ],
+        assets: [
+          { id: 'a1', name: 'Tabungan BCA', amount: 48500000, category: 'Kas & Bank' },
+          { id: 'a2', name: 'Portofolio Saham & Reksadana', amount: 82000000, category: 'Investasi' }
+        ],
+        liabilities: [{ id: 'l1', name: 'Sisa Pokok KPR', amount: 185000000, category: 'KPR' }],
+        debts: [{ id: 'd1', name: 'KPR Griya Asri', totalDebt: 320000000, remainingDebt: 185000000, monthlyPayment: 3850000, dueDate: 'Tanggal 10 tiap bulan' }],
+        subscriptions: [
+          { id: 's1', name: 'Netflix Premium 4K', amount: 186000, category: 'Hiburan', nextBillingDate: '2026-11-18', active: true },
+          { id: 's2', name: 'Spotify Family', amount: 86900, category: 'Hiburan', nextBillingDate: '2026-11-22', active: true },
+          { id: 's3', name: 'IndiHome 100Mbps', amount: 425000, category: 'Tagihan', nextBillingDate: '2026-11-20', active: false }
+        ],
+        budgets: { 'Makanan & Minuman': 3000000, 'Transportasi': 1500000, 'Tagihan': 2000000, 'Belanja': 1500000, 'Hiburan': 1000000 },
+
+        async initApp() {
+          const savedTheme = localStorage.getItem('fortre_theme');
+          this.darkMode = savedTheme !== 'light';
+          document.documentElement.classList.toggle('dark', this.darkMode);
+
+          const savedUser = localStorage.getItem('fortre_auth_user');
+          if (savedUser) {
+            try { this.currentUser = JSON.parse(savedUser); } catch(e) {}
+          }
+          if (supabaseClient) {
+            try {
+              const { data } = await supabaseClient.auth.getUser();
+              const sbUser = data?.user;
+              if (sbUser) {
+                const meta = sbUser.user_metadata || {};
+                const fullName = meta.full_name || meta.name || sbUser.email?.split('@')[0] || 'User';
+                const avatarUrl = meta.avatar_url || meta.picture || undefined;
+                this.currentUser = {
+                  id: sbUser.id,
+                  fullName,
+                  email: sbUser.email || '',
+                  provider: avatarUrl ? 'google' : 'email',
+                  initials: fullName.slice(0, 2).toUpperCase(),
+                  avatarUrl
+                };
+                localStorage.setItem('fortre_auth_user', JSON.stringify(this.currentUser));
+              }
+            } catch(e) {}
+          }
+          const params = new URLSearchParams(window.location.search);
+          if (params.get('autostart') === '1' && !this.currentUser) {
+            this.loginDemoMode();
+          }
+          if (this.currentUser) {
+            this.profileNameInput = this.currentUser.fullName || '';
+            this.profileUrlInput = this.currentUser.avatarUrl || '';
+            this.profileEmojiInput = this.currentUser.avatarEmoji || '';
+          }
+
+          this.initDotMatrix();
+          window.addEventListener('resize', () => {
+            if (this.currentUser) { this.renderCharts(); this.renderMobileCharts(); }
+          });
+          this.$nextTick(() => {
+            lucide.createIcons();
+            if (this.currentUser) { this.renderCharts(); this.renderMobileCharts(); }
+          });
+        },
+
+        get firstName() {
+          const name = (this.currentUser?.fullName || 'User').trim();
+          return name.split(/\s+/)[0] || 'User';
+        },
+
+        userAvatarText() {
+          if (this.currentUser?.avatarEmoji) return this.currentUser.avatarEmoji;
+          return this.currentUser?.initials || 'RR';
+        },
+
+        handleAvatarUpload(evt) {
+          const file = evt.target.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (typeof reader.result === 'string') {
+              this.profileUrlInput = reader.result;
+              this.profileEmojiInput = '';
+            }
+          };
+          reader.readAsDataURL(file);
+        },
+
+        saveProfileModal() {
+          if (!this.currentUser) return;
+          this.currentUser = {
+            ...this.currentUser,
+            fullName: (this.profileNameInput || this.currentUser.fullName).trim(),
+            avatarUrl: this.profileUrlInput || undefined,
+            avatarEmoji: this.profileUrlInput ? undefined : (this.profileEmojiInput || undefined),
+            initials: (this.profileNameInput || this.currentUser.fullName).trim().slice(0, 2).toUpperCase()
+          };
+          localStorage.setItem('fortre_auth_user', JSON.stringify(this.currentUser));
+          this.isProfileModalOpen = false;
+        },
+
+        currencySymbol() {
+          if (this.currency === 'USD') return '$';
+          if (this.currency === 'EUR') return '€';
+          if (this.currency === 'SGD') return 'S$';
+          return 'Rp';
+        },
+
+        keypadPress(ch) {
+          this.amountExpr = (this.amountExpr === '0' ? '' : this.amountExpr) + ch;
+        },
+
+        evaluateKeypad() {
+          const s = String(this.amountExpr || '').replace(/×/g, '*').replace(/÷/g, '/').replace(/[^0-9+\-*/.]/g, '');
+          if (!s) return '0';
+          const tokens = s.match(/(\d+(?:\.\d+)?|[+\-*/])/g);
+          if (!tokens) return '0';
+          const stack = [];
+          let i = 0;
+          while (i < tokens.length) {
+            const tok = tokens[i];
+            if ((tok === '*' || tok === '/') && stack.length > 0 && i + 1 < tokens.length) {
+              const l = Number(stack.pop()), r = Number(tokens[i + 1]);
+              stack.push(tok === '*' ? l * r : (r !== 0 ? l / r : l));
+              i += 2;
+            } else if (tok === '+' || tok === '-') {
+              stack.push(tok); i += 1;
+            } else {
+              stack.push(Number(tok) || 0); i += 1;
+            }
+          }
+          let acc = Number(stack[0]) || 0;
+          for (let j = 1; j < stack.length - 1; j += 2) {
+            if (stack[j] === '+') acc += Number(stack[j + 1]) || 0;
+            if (stack[j] === '-') acc -= Number(stack[j + 1]) || 0;
+          }
+          this.amountExpr = String(Math.max(0, Math.round(acc)));
+          return this.amountExpr;
+        },
+
+        getBrandMeta(text) {
+          const d = (text || '').toLowerCase();
+          if (d.includes('shopee')) return { abbr: 'S', bg: '#EE4D2D' };
+          if (d.includes('tokopedia')) return { abbr: 'T', bg: '#03AC0E' };
+          if (d.includes('lazada')) return { abbr: 'L', bg: '#0F146D' };
+          if (d.includes('gojek') || d.includes('gofood')) return { abbr: 'G', bg: '#00AA13' };
+          if (d.includes('grab')) return { abbr: 'Gr', bg: '#00B14F' };
+          if (d.includes('netflix')) return { abbr: 'N', bg: '#E50914' };
+          if (d.includes('spotify')) return { abbr: 'Sp', bg: '#1DB954' };
+          if (d.includes('bca')) return { abbr: 'BCA', bg: '#00529C' };
+          if (d.includes('indihome')) return { abbr: 'IH', bg: '#E60012' };
+          return { abbr: (text || 'FT').slice(0, 2).toUpperCase(), bg: '#059669' };
+        },
+
+        loginDemoMode() {
+          this.currentUser = { id: 'demo-rafli', fullName: 'Rafli Ramadhani', email: 'rafli@fortre.demo', provider: 'demo', initials: 'RR' };
+          this.profileNameInput = this.currentUser.fullName;
+          localStorage.setItem('fortre_auth_user', JSON.stringify(this.currentUser));
+          this.$nextTick(() => { lucide.createIcons(); this.renderCharts(); this.renderMobileCharts(); });
+        },
+
+        async loginWithGoogle() {
+          if (!supabaseClient) {
+            this.authFeedback = {
+              type: 'info',
+              message: this.lang === 'en'
+                ? 'Google OAuth requires SUPABASE_URL and SUPABASE_ANON_KEY. Click "Masuk Mode Demo" for instant access!'
+                : 'Google OAuth butuh konfigurasi SUPABASE_URL & SUPABASE_ANON_KEY. Gunakan Email atau klik "Masuk Mode Demo"!'
+            };
+            return;
+          }
+          const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'google' });
+          if (error) this.authFeedback = { type: 'error', message: error.message };
+        },
+
+        async submitEmailAuth() {
+          const email = (this.authForm.email || '').trim().toLowerCase();
+          const pass = this.authForm.password || '';
+          const name = (this.authForm.fullName || '').trim();
+          if (pass.length < 6) {
+            this.authFeedback = { type: 'error', message: this.lang === 'en' ? 'Password must be at least 6 characters.' : 'Kata sandi minimal 6 karakter.' };
+            return;
+          }
+          if (supabaseClient) {
+            const res = this.authView === 'signup'
+              ? await supabaseClient.auth.signUp({ email, password: pass, options: { data: { full_name: name } } })
+              : await supabaseClient.auth.signInWithPassword({ email, password: pass });
+            if (res.error) { this.authFeedback = { type: 'error', message: res.error.message }; return; }
+          }
+          const finalName = this.authView === 'signup' ? (name || email.split('@')[0]) : email.split('@')[0];
+          this.currentUser = { id: 'user-' + Date.now(), fullName: finalName, email, provider: 'email', initials: finalName.slice(0, 2).toUpperCase() };
+          this.profileNameInput = this.currentUser.fullName;
+          localStorage.setItem('fortre_auth_user', JSON.stringify(this.currentUser));
+          this.$nextTick(() => { lucide.createIcons(); this.renderCharts(); this.renderMobileCharts(); });
+        },
+
+        async submitForgotPassword() {
+          const email = (this.authForm.email || '').trim();
+          if (supabaseClient) {
+            await supabaseClient.auth.resetPasswordForEmail(email);
+          }
+          this.authFeedback = {
+            type: 'info',
+            message: this.lang === 'en'
+              ? 'Password reset instructions prepared for ' + email
+              : 'Permintaan reset password diproses untuk ' + email
+          };
+        },
+
+        logout() {
+          this.currentUser = null;
+          localStorage.removeItem('fortre_auth_user');
+          if (supabaseClient) supabaseClient.auth.signOut();
+          this.$nextTick(() => lucide.createIcons());
+        },
+
+        toggleSync() {
+          this.syncActive = !this.syncActive;
+          localStorage.setItem('fortre_sync_active', JSON.stringify(this.syncActive));
+        },
+
+        toggleTheme() {
+          this.darkMode = !this.darkMode;
+          document.documentElement.classList.toggle('dark', this.darkMode);
+          localStorage.setItem('fortre_theme', this.darkMode ? 'dark' : 'light');
+          this.$nextTick(() => { lucide.createIcons(); this.renderCharts(); this.renderMobileCharts(); });
+        },
+
+        saveCurrency() { localStorage.setItem('fortre_currency', this.currency); },
+        saveLang() { localStorage.setItem('fortre_language', this.lang); },
+        saveTargetRate() { localStorage.setItem('fortre_target_savings_rate', String(this.targetSavingsRate)); },
+
+        t(key) {
+          const dict = {
+            id: {
+              'nav.dashboard': 'Dashboard', 'nav.transactions': 'Rincian Transaksi', 'nav.optimization': 'Optimasi Anggaran',
+              'nav.wealth': 'Kekayaan & Investasi', 'nav.liabilities': 'Kewajiban & Langganan', 'nav.exports': 'Pusat Ekspor', 'nav.settings': 'Pengaturan',
+              'mobile.home': 'Beranda',
+              'period.daily': 'Harian', 'period.monthly': 'Bulanan', 'period.yearly': 'Tahunan', 'period.all': 'Semua',
+              'headerCard.netBalanceTitle': 'Saldo Saat Ini', 'headerCard.savingsRate': 'rasio tabungan',
+              'headerCard.income': 'Pemasukan', 'headerCard.expense': 'Pengeluaran',
+              'dashboard.subtitle': 'Dashboard Utama', 'dashboard.cashflowTrend': 'Arus Kas & Tren Finansial', 'dashboard.expenseAllocation': 'Alokasi Pengeluaran',
+              'transactions.subtitle': 'Rincian Transaksi', 'transactions.searchPlaceholder': 'Cari transaksi...',
+              'transactions.allTypes': 'Semua Tipe', 'transactions.incomeOnly': 'Pemasukan', 'transactions.expenseOnly': 'Pengeluaran',
+              'transactions.allMethods': 'Semua Metode', 'transactions.colDate': 'Tanggal', 'transactions.colDesc': 'Deskripsi',
+              'transactions.colCat': 'Kategori', 'transactions.colAmount': 'Nominal', 'transactions.colAction': 'Aksi',
+              'optimization.subtitle': 'Optimasi Anggaran', 'optimization.exceededWarning': 'Peringatan Anggaran Darurat',
+              'wealth.subtitle': 'Kekayaan & Investasi', 'wealth.netWorthTitle': 'Kalkulator Kekayaan Bersih', 'wealth.totalAssets': 'Total Aset', 'wealth.totalLiabilities': 'Total Kewajiban', 'wealth.netWorth': 'Kekayaan Bersih',
+              'liabilities.subtitle': 'Kewajiban & Langganan', 'exports.subtitle': 'Pusat Ekspor', 'settings.subtitle': 'Pengaturan',
+              'ai.title': 'Fortre AI Assistant', 'ai.inputPlaceholder': 'Tanya asisten...', 'ai.floatingBtn': 'Asisten Fortre',
+              'actions.addTransaction': 'Catat Transaksi', 'actions.cancel': 'Batal', 'actions.save': 'Simpan', 'actions.dismiss': 'Tutup',
+              'auth.orDivider': 'atau lanjutkan dengan email', 'auth.loginTab': 'Masuk', 'auth.signupTab': 'Daftar',
+              'auth.fullNameLabel': 'Nama Lengkap', 'auth.emailLabel': 'Email', 'auth.passwordLabel': 'Kata Sandi',
+              'auth.footerNote': 'Kelola arus kas, anggaran, dan target tabungan dalam satu kendali.', 'auth.forgotTitle': 'Reset Kata Sandi',
+              'auth.forgotDesc': 'Masukkan alamat email Anda.', 'auth.forgotSubmit': 'Kirim Tautan Reset', 'auth.backToLogin': 'Kembali'
+            },
+            en: {
+              'nav.dashboard': 'Dashboard', 'nav.transactions': 'Transactions', 'nav.optimization': 'Budget Optimization',
+              'nav.wealth': 'Wealth & Investment', 'nav.liabilities': 'Liabilities & Subscriptions', 'nav.exports': 'Export Center', 'nav.settings': 'Settings',
+              'mobile.home': 'Home',
+              'period.daily': 'Daily', 'period.monthly': 'Monthly', 'period.yearly': 'Yearly', 'period.all': 'All',
+              'headerCard.netBalanceTitle': 'Current Balance', 'headerCard.savingsRate': 'savings rate',
+              'headerCard.income': 'Income', 'headerCard.expense': 'Expense',
+              'dashboard.subtitle': 'Main Dashboard', 'dashboard.cashflowTrend': 'Cash Flow & Financial Trend', 'dashboard.expenseAllocation': 'Expense Allocation',
+              'transactions.subtitle': 'Transactions', 'transactions.searchPlaceholder': 'Search transactions...',
+              'transactions.allTypes': 'All Types', 'transactions.incomeOnly': 'Income', 'transactions.expenseOnly': 'Expense',
+              'transactions.allMethods': 'All Methods', 'transactions.colDate': 'Date', 'transactions.colDesc': 'Description',
+              'transactions.colCat': 'Category', 'transactions.colAmount': 'Amount', 'transactions.colAction': 'Action',
+              'optimization.subtitle': 'Budget Optimization', 'optimization.exceededWarning': 'Emergency Budget Alert',
+              'wealth.subtitle': 'Wealth & Investment', 'wealth.netWorthTitle': 'Net Worth Calculator', 'wealth.totalAssets': 'Total Assets', 'wealth.totalLiabilities': 'Total Liabilities', 'wealth.netWorth': 'Net Worth',
+              'liabilities.subtitle': 'Liabilities & Subscriptions', 'exports.subtitle': 'Export Center', 'settings.subtitle': 'Settings',
+              'ai.title': 'Fortre AI Assistant', 'ai.inputPlaceholder': 'Ask assistant...', 'ai.floatingBtn': 'Fortre Assistant',
+              'actions.addTransaction': 'Record Transaction', 'actions.cancel': 'Cancel', 'actions.save': 'Save', 'actions.dismiss': 'Dismiss',
+              'auth.orDivider': 'or continue with email', 'auth.loginTab': 'Sign In', 'auth.signupTab': 'Sign Up',
+              'auth.fullNameLabel': 'Full Name', 'auth.emailLabel': 'Email Address', 'auth.passwordLabel': 'Password',
+              'auth.footerNote': 'Manage cash flow, budgets, and savings targets under one unified control.', 'auth.forgotTitle': 'Reset Password',
+              'auth.forgotDesc': 'Enter your registered email address.', 'auth.forgotSubmit': 'Send Reset Link', 'auth.backToLogin': 'Back to Login'
+            }
+          };
+          return dict[this.lang]?.[key] || key;
+        },
+
+        getViewSubtitle() {
+          if (this.currentView === 'achievements') return this.lang === 'en' ? 'Badges & Achievements' : 'Pencapaian & Lencana';
+          return this.t(this.currentView + '.subtitle');
+        },
+
+        activePeriodLabel() {
+          if (this.periodMode === 'daily') return this.selectedDate;
+          if (this.periodMode === 'monthly') return this.selectedMonth;
+          if (this.periodMode === 'yearly') return this.selectedYear;
+          return this.lang === 'en' ? 'All Period' : 'Semua Periode';
+        },
+
+        stepPeriod(dir) {
+          if (this.periodMode === 'daily') {
+            const d = new Date((this.selectedDate || '2026-11-04') + 'T00:00:00');
+            d.setDate(d.getDate() + dir);
+            this.selectedDate = d.toISOString().slice(0, 10);
+            this.syncFromDate();
+          } else if (this.periodMode === 'monthly') {
+            const p = this.selectedMonth.split('-').map(Number);
+            let y = p[0], m = p[1] + dir;
+            if (m > 12) { m = 1; y += 1; }
+            if (m < 1) { m = 12; y -= 1; }
+            this.selectedMonth = y + '-' + String(m).padStart(2, '0');
+            this.syncFromMonth();
+          } else if (this.periodMode === 'yearly') {
+            this.selectedYear = String(parseInt(this.selectedYear, 10) + dir);
+            this.syncFromYear();
+          }
+          this.$nextTick(() => { this.renderCharts(); this.renderMobileCharts(); });
+        },
+
+        syncFromDate() {
+          if (!this.selectedDate) return;
+          this.selectedMonth = this.selectedDate.slice(0, 7);
+          this.selectedYear = this.selectedDate.slice(0, 4);
+          this.$nextTick(() => { this.renderCharts(); this.renderMobileCharts(); });
+        },
+
+        syncFromMonth() {
+          if (!this.selectedMonth) return;
+          this.selectedYear = this.selectedMonth.slice(0, 4);
+          this.selectedDate = this.selectedMonth + '-' + (this.selectedDate || '2026-11-04').slice(8, 10);
+          this.$nextTick(() => { this.renderCharts(); this.renderMobileCharts(); });
+        },
+
+        syncFromYear() {
+          const yr = String(this.selectedYear || '').replace(/\D/g, '').slice(0, 4);
+          this.selectedYear = yr;
+          if (/^\d{4}$/.test(yr)) {
+            this.selectedMonth = yr + '-' + (this.selectedMonth || '2026-11').slice(5, 7);
+            this.selectedDate = yr + '-' + (this.selectedDate || '2026-11-04').slice(5);
+            this.$nextTick(() => { this.renderCharts(); this.renderMobileCharts(); });
+          }
+        },
+
+        get periodTransactions() {
+          return this.transactions.filter(t => {
+            if (this.periodMode === 'daily') return t.date === this.selectedDate;
+            if (this.periodMode === 'monthly') return (t.date || '').startsWith(this.selectedMonth);
+            if (this.periodMode === 'yearly') return (t.date || '').startsWith(this.selectedYear);
+            return true;
+          });
+        },
+
+        get periodTotals() {
+          const inc = this.periodTransactions.filter(t => t.type === 'income').reduce((s, t) => s + (Number(t.amount) || 0), 0);
+          const exp = this.periodTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + (Number(t.amount) || 0), 0);
+          const bal = inc - exp;
+          const rate = inc > 0 ? Math.max(0, Math.round((bal / inc) * 100)) : 0;
+          return { totalIncome: inc, totalExpense: exp, balance: bal, savingsRate: rate };
+        },
+
+        get walletBalances() {
+          const buckets = {
+            'Transfer Bank': 0,
+            'QRIS': 0,
+            'Cash': 0
+          };
+          this.transactions.forEach(t => {
+            const raw = t.paymentMethod === 'Cash (Tunai)' ? 'Cash' : (t.paymentMethod || 'Transfer Bank');
+            const key = Object.prototype.hasOwnProperty.call(buckets, raw) ? raw : 'Transfer Bank';
+            const amt = Number(t.amount) || 0;
+            buckets[key] += t.type === 'income' ? amt : -amt;
+          });
+          const positiveTotal = Math.max(0, buckets['Transfer Bank']) + Math.max(0, buckets['QRIS']) + Math.max(0, buckets['Cash']);
+          const defs = [
+            { method: 'Transfer Bank', label: 'Transfer Bank', icon: 'landmark', colorClass: 'text-indigo-500', bgClass: 'bg-indigo-500/12', barClass: 'bg-indigo-500' },
+            { method: 'QRIS', label: 'QRIS / E-Wallet', icon: 'qr-code', colorClass: 'text-emerald-500', bgClass: 'bg-emerald-500/12', barClass: 'bg-emerald-500' },
+            { method: 'Cash', label: this.lang === 'en' ? 'Cash' : 'Cash (Tunai)', icon: 'banknote', colorClass: 'text-amber-500', bgClass: 'bg-amber-500/12', barClass: 'bg-amber-500' }
+          ];
+          return defs.map(d => {
+            const balance = buckets[d.method] || 0;
+            const pct = positiveTotal > 0 && balance > 0 ? Math.round((balance / positiveTotal) * 100) : 0;
+            return { ...d, balance, pct };
+          });
+        },
+
+        get upcomingPayments() {
+          const subs = this.subscriptions.filter(s => s.active).map(s => ({ id: s.id, title: s.name, amount: s.amount, kind: this.lang === 'en' ? 'Sub' : 'Langganan', dueLabel: s.nextBillingDate || '2026-11-30' }));
+          const ds = this.debts.map(d => ({ id: d.id, title: d.name, amount: d.monthlyPayment, kind: this.lang === 'en' ? 'Loan' : 'Cicilan', dueLabel: d.dueDate }));
+          return [...subs, ...ds];
+        },
+
+        get budgetStatuses() {
+          const items = [];
+          let exceeded = 0;
+          Object.keys(this.budgets).forEach(cat => {
+            const limit = this.budgets[cat];
+            const spent = this.periodTransactions.filter(t => t.type === 'expense' && t.category === cat).reduce((s, t) => s + t.amount, 0);
+            const pct = limit > 0 ? Math.round((spent / limit) * 100) : 0;
+            if (pct > 100) exceeded++;
+            items.push({ category: cat, spent, monthlyLimit: limit, percentage: pct, status: pct > 100 ? 'exceeded' : 'safe' });
+          });
+          return { items, exceededCount: exceeded };
+        },
+
+        get financialHealth() {
+          const score = Math.min(100, Math.max(20, Math.round(this.periodTotals.savingsRate * 1.2 + (this.budgetStatuses.exceededCount === 0 ? 40 : 15))));
+          return { score, grade: score >= 80 ? 'A' : 'B' };
+        },
+
+        get netWorthData() {
+          const a = this.assets.reduce((s, x) => s + x.amount, 0);
+          const l = this.liabilities.reduce((s, x) => s + x.amount, 0);
+          return { totalAssets: a, totalLiabilities: l, netWorth: a - l };
+        },
+
+        filteredTransactions() {
+          return this.periodTransactions.filter(t => {
+            if (this.filterType !== 'all' && t.type !== this.filterType) return false;
+            if (this.filterMethod !== 'all' && t.paymentMethod !== this.filterMethod) return false;
+            if (this.searchQuery) {
+              const q = this.searchQuery.toLowerCase();
+              return t.description.toLowerCase().includes(q) || t.category.toLowerCase().includes(q) || (t.purchaseLocation || '').toLowerCase().includes(q);
+            }
+            return true;
+          });
+        },
+
+        get historySummaryRows() {
+          if (this.periodMode === 'all') {
+            const inc = this.transactions.filter(t => t.type === 'income').reduce((s, t) => s + (Number(t.amount) || 0), 0);
+            const exp = this.transactions.filter(t => t.type === 'expense').reduce((s, t) => s + (Number(t.amount) || 0), 0);
+            return [{ key: 'all', label: this.lang === 'en' ? 'All Time' : 'Semua Periode', count: this.transactions.length, income: inc, expense: exp, net: inc - exp }];
+          }
+          const map = new Map();
+          this.transactions.forEach(t => {
+            const d = t.date || '2026-11-04';
+            const key = this.periodMode === 'yearly' ? d.slice(0, 4) : (this.periodMode === 'monthly' ? d.slice(0, 7) : d);
+            const cur = map.get(key) || { key, label: key, count: 0, income: 0, expense: 0, net: 0 };
+            cur.count += 1;
+            if (t.type === 'income') cur.income += Number(t.amount) || 0;
+            else cur.expense += Number(t.amount) || 0;
+            cur.net = cur.income - cur.expense;
+            map.set(key, cur);
+          });
+          return Array.from(map.values()).sort((a, b) => b.key.localeCompare(a.key));
+        },
+
+        jumpToHistoryPeriod(key) {
+          if (key === 'all') this.periodMode = 'all';
+          else if (this.periodMode === 'yearly') { this.selectedYear = key; this.syncFromYear(); }
+          else if (this.periodMode === 'monthly') { this.selectedMonth = key; this.syncFromMonth(); }
+          else { this.selectedDate = key; this.syncFromDate(); }
+          this.$nextTick(() => { this.renderCharts(); this.renderMobileCharts(); });
+        },
+
+        get expenseAllocationItems() {
+          const map = new Map();
+          let total = 0;
+          this.periodTransactions.filter(t => t.type === 'expense').forEach(t => {
+            const amt = Number(t.amount) || 0;
+            total += amt;
+            map.set(t.category, (map.get(t.category) || 0) + amt);
+          });
+          return Array.from(map.entries()).map(([category, amount]) => ({
+            category,
+            amount,
+            pct: total > 0 ? Math.round((amount / total) * 100) : 0
+          })).sort((a, b) => b.amount - a.amount);
+        },
+
+        isSundayIso(iso) {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || '')) return false;
+          const [y, m, d] = iso.split('-').map(Number);
+          return new Date(y, m - 1, d).getDay() === 0;
+        },
+
+        isCeritaActive() {
+          return new Date().getDay() === 0 || this.isSundayIso(this.selectedDate);
+        },
+
+        nextSundayIso() {
+          const base = /^\d{4}-\d{2}-\d{2}$/.test(this.selectedDate || '') ? new Date(this.selectedDate + 'T12:00:00') : new Date();
+          const day = base.getDay();
+          const add = day === 0 ? 0 : 7 - day;
+          base.setDate(base.getDate() + add);
+          return base.toISOString().slice(0, 10);
+        },
+
+        get weeklyStories() {
+          const weeks = new Map();
+          this.transactions.forEach(tx => {
+            const d = new Date((tx.date || '2026-11-04') + 'T00:00:00');
+            const day = d.getDay() || 7;
+            const monday = new Date(d);
+            monday.setDate(d.getDate() - day + 1);
+            const wk = monday.toISOString().slice(0, 10);
+            const arr = weeks.get(wk) || [];
+            arr.push(tx);
+            weeks.set(wk, arr);
+          });
+          const keys = Array.from(weeks.keys()).sort((a, b) => b.localeCompare(a));
+          if (keys.length === 0) keys.push('2026-11-02');
+          return keys.map(wk => {
+            const txs = weeks.get(wk) || [];
+            const inc = txs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+            const exp = txs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+            const net = inc - exp;
+            const rate = inc > 0 ? Math.max(0, Math.round((net / inc) * 100)) : 0;
+            const endD = new Date(wk + 'T00:00:00'); endD.setDate(endD.getDate() + 6);
+            const topCat = this.expenseAllocationItems[0]?.category || 'Makanan & Minuman';
+            return {
+              weekKey: wk,
+              rangeLabel: wk + ' – ' + endD.toISOString().slice(0, 10),
+              income: inc,
+              expense: exp,
+              netFlow: net,
+              savingsRate: rate,
+              txCount: txs.length,
+              topCat,
+              headline: net >= 0 ? (this.lang === 'en' ? 'Healthy Weekly Surplus' : 'Surplus Mingguan Sehat') : (this.lang === 'en' ? 'High Expense Alert' : 'Waspada Pengeluaran Tinggi'),
+              tip: this.lang === 'en'
+                ? 'Focus budget discipline on ' + topCat + ' and keep logging every QRIS transaction to elevate your Financial Health Score.'
+                : 'Fokus jaga disiplin anggaran di pos ' + topCat + ' & terus catat transaksi harian untuk menaikkan Skor Kesehatan Finansial.'
+            };
+          });
+        },
+
+        get activeStory() {
+          if (this.selectedStoryWeekKey) {
+            return this.weeklyStories.find(s => s.weekKey === this.selectedStoryWeekKey) || this.weeklyStories[0];
+          }
+          return this.weeklyStories[0];
+        },
+        get hasUnseenStory() { return this.weeklyStories[0] && !this.seenStories.includes(this.weeklyStories[0].weekKey); },
+        openStoryModal(weekKey = null) {
+          this.selectedStoryWeekKey = weekKey;
+          this.isStoryModalOpen = true;
+          if (this.activeStory && !this.seenStories.includes(this.activeStory.weekKey)) {
+            this.seenStories.push(this.activeStory.weekKey);
+            localStorage.setItem('fortre_seen_stories', JSON.stringify(this.seenStories));
+          }
+          this.$nextTick(() => lucide.createIcons());
+        },
+
+        depositGoal(id, amt) {
+          const g = this.savingsGoals.find(x => x.id === id);
+          if (g) g.currentAmount = Math.min(g.targetAmount * 2, g.currentAmount + amt);
+        },
+
+        addRecentSearch(q) {
+          const t = (q || '').trim();
+          if (t) this.recentSearches = [t, ...this.recentSearches.filter(x => x !== t)].slice(0, 6);
+        },
+
+        formatMoney(amt) {
+          const rates = { IDR: 1, USD: 1 / 16000, EUR: 1 / 17500, SGD: 1 / 12000 };
+          const val = (amt || 0) * (rates[this.currency] || 1);
+          if (this.currency === 'IDR') return 'Rp ' + Math.round(val).toLocaleString('id-ID');
+          if (this.currency === 'USD') return '$' + val.toFixed(2);
+          if (this.currency === 'EUR') return '€' + val.toFixed(2);
+          return 'S$' + val.toFixed(2);
+        },
+
+        toggleSubscription(id) {
+          const s = this.subscriptions.find(x => x.id === id);
+          if (s) s.active = !s.active;
+        },
+
+        openAddModal() {
+          this.editingTxId = null;
+          this.formTx = { description: '', purchaseLocation: '', amount: 50000, type: 'expense', category: 'Makanan & Minuman', paymentMethod: 'Transfer Bank', date: this.selectedDate || '2026-11-04' };
+          this.amountExpr = '50000';
+          this.isAddModalOpen = true;
+        },
+
+        startEditTransaction(tx) {
+          this.editingTxId = tx.id;
+          this.formTx = { description: tx.description, purchaseLocation: tx.purchaseLocation || '', amount: tx.amount, type: tx.type, category: tx.category, paymentMethod: tx.paymentMethod, date: tx.date };
+          this.amountExpr = String(tx.amount);
+          this.isAddModalOpen = true;
+        },
+
+        addTransaction() {
+          const finalAmt = Number(this.evaluateKeypad()) || 0;
+          if (!this.formTx.description || finalAmt <= 0) return;
+          if (this.editingTxId) {
+            this.transactions = this.transactions.map(t => t.id === this.editingTxId ? { ...t, ...this.formTx, amount: finalAmt } : t);
+          } else {
+            this.transactions.unshift({ id: 'tx-' + Date.now(), ...this.formTx, amount: finalAmt });
+          }
+          this.editingTxId = null;
+          this.isAddModalOpen = false;
+          this.formTx.description = '';
+          this.formTx.purchaseLocation = '';
+          this.amountExpr = '';
+          this.$nextTick(() => { lucide.createIcons(); this.renderCharts(); this.renderMobileCharts(); });
+        },
+
+        deleteTransaction(id) {
+          this.transactions = this.transactions.filter(t => t.id !== id);
+          this.$nextTick(() => { this.renderCharts(); this.renderMobileCharts(); });
+        },
+
+        resetAllData() {
+          this.transactions = []; this.savingsGoals = []; this.assets = []; this.liabilities = []; this.debts = []; this.subscriptions = [];
+          this.showResetModal = false;
+          this.$nextTick(() => { this.renderCharts(); this.renderMobileCharts(); });
+        },
+
+        buildCashflowSeries() {
+          const map = new Map();
+          this.periodTransactions.forEach(t => {
+            const key = this.periodMode === 'yearly' ? (t.date || '').slice(0, 7) : (t.date || '').slice(5);
+            const cur = map.get(key) || { income: 0, expense: 0 };
+            if (t.type === 'income') cur.income += Number(t.amount) || 0;
+            else cur.expense += Number(t.amount) || 0;
+            map.set(key, cur);
+          });
+          const labels = Array.from(map.keys()).sort();
+          if (labels.length === 0) labels.push('—');
+          return {
+            labels,
+            incomes: labels.map(l => map.get(l)?.income || 0),
+            expenses: labels.map(l => map.get(l)?.expense || 0)
+          };
+        },
+
+        renderMobileCharts() {
+          if (!window.Chart) return;
+          const series = this.buildCashflowSeries();
+          const mTrend = document.getElementById('mobileTrendChart');
+          if (mTrend) {
+            if (window._mTrendInst) window._mTrendInst.destroy();
+            const mCtx = mTrend.getContext('2d');
+            const mIncGrad = mCtx ? (() => { const g = mCtx.createLinearGradient(0, 0, 0, 150); g.addColorStop(0, 'rgba(110, 231, 183, 0.30)'); g.addColorStop(1, 'rgba(110, 231, 183, 0)'); return g; })() : 'rgba(110,231,183,0.16)';
+            const mExpGrad = mCtx ? (() => { const g = mCtx.createLinearGradient(0, 0, 0, 150); g.addColorStop(0, 'rgba(253, 164, 175, 0.22)'); g.addColorStop(1, 'rgba(253, 164, 175, 0)'); return g; })() : 'rgba(253,164,175,0.12)';
+            window._mTrendInst = new Chart(mTrend, {
+              type: 'line',
+              data: {
+                labels: series.labels,
+                datasets: [
+                  { label: this.t('headerCard.income'), data: series.incomes, borderColor: '#6ee7b7', backgroundColor: mIncGrad, fill: 'start', tension: 0.22, borderWidth: 2.5, pointRadius: 0, pointHitRadius: 12, pointHoverRadius: 5, pointBackgroundColor: '#34d399', pointBorderColor: '#ffffff', pointBorderWidth: 2 },
+                  { label: this.t('headerCard.expense'), data: series.expenses, borderColor: '#fda4af', backgroundColor: mExpGrad, fill: 'start', tension: 0.22, borderWidth: 2.5, pointRadius: 0, pointHitRadius: 12, pointHoverRadius: 5, pointBackgroundColor: '#fb7185', pointBorderColor: '#ffffff', pointBorderWidth: 2 }
+                ]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { display: false } },
+                scales: {
+                  x: { grid: { display: false }, border: { display: false }, ticks: { color: 'rgba(255,255,255,0.78)', font: { size: 9, weight: 600 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 7 } },
+                  y: { position: 'right', beginAtZero: true, border: { display: false }, grid: { color: 'rgba(255,255,255,0.12)' }, ticks: { color: 'rgba(255,255,255,0.75)', font: { size: 9 }, maxTicksLimit: 4 } }
+                }
+              }
+            });
+          }
+
+          const mDonut = document.getElementById('mobileExpenseDonut');
+          if (mDonut) {
+            if (window._mDonutInst) window._mDonutInst.destroy();
+            const items = this.expenseAllocationItems;
+            window._mDonutInst = new Chart(mDonut, {
+              type: 'doughnut',
+              data: {
+                labels: items.length ? items.map(x => x.category) : ['—'],
+                datasets: [{ data: items.length ? items.map(x => x.amount) : [1], backgroundColor: ['#f97316', '#3b82f6', '#ef4444', '#8b5cf6', '#10b981'] }]
+              },
+              options: { responsive: true, maintainAspectRatio: false, cutout: '72%', plugins: { legend: { display: false } } }
+            });
+          }
+        },
+
+        renderCharts() {
+          if (!window.Chart) return;
+          const donutCtx = document.getElementById('donutChart');
+          if (donutCtx) {
+            if (window._donutChartInst) window._donutChartInst.destroy();
+            const items = this.expenseAllocationItems;
+            window._donutChartInst = new Chart(donutCtx, {
+              type: 'doughnut',
+              data: { labels: items.length ? items.map(x => x.category) : ['—'], datasets: [{ data: items.length ? items.map(x => x.amount) : [1], backgroundColor: ['#f97316', '#3b82f6', '#ef4444', '#8b5cf6', '#10b981'] }] },
+              options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false } } }
+            });
+          }
+          const trendCtx = document.getElementById('trendChart');
+          if (trendCtx) {
+            if (window._trendChartInst) window._trendChartInst.destroy();
+            const series = this.buildCashflowSeries();
+            const tickC = this.darkMode ? '#94a3b8' : '#64748b';
+            const gridC = this.darkMode ? 'rgba(51, 65, 85, 0.28)' : 'rgba(226, 232, 240, 0.7)';
+            const ptBorder = this.darkMode ? '#0F172A' : '#ffffff';
+            const dCtx = trendCtx.getContext('2d');
+            const dIncGrad = dCtx ? (() => { const g = dCtx.createLinearGradient(0, 0, 0, 260); g.addColorStop(0, this.darkMode ? 'rgba(16, 185, 129, 0.28)' : 'rgba(16, 185, 129, 0.20)'); g.addColorStop(1, 'rgba(16, 185, 129, 0)'); return g; })() : 'rgba(16,185,129,0.12)';
+            const dExpGrad = dCtx ? (() => { const g = dCtx.createLinearGradient(0, 0, 0, 260); g.addColorStop(0, this.darkMode ? 'rgba(244, 63, 94, 0.22)' : 'rgba(244, 63, 94, 0.16)'); g.addColorStop(1, 'rgba(244, 63, 94, 0)'); return g; })() : 'rgba(244,63,94,0.10)';
+            window._trendChartInst = new Chart(trendCtx, {
+              type: 'line',
+              data: {
+                labels: series.labels,
+                datasets: [
+                  { label: this.t('headerCard.income'), data: series.incomes, borderColor: '#10b981', backgroundColor: dIncGrad, fill: 'start', tension: 0.22, borderWidth: 2.5, pointRadius: 0, pointHitRadius: 12, pointHoverRadius: 5, pointBackgroundColor: '#10b981', pointBorderColor: ptBorder, pointBorderWidth: 2 },
+                  { label: this.t('headerCard.expense'), data: series.expenses, borderColor: '#f43f5e', backgroundColor: dExpGrad, fill: 'start', tension: 0.22, borderWidth: 2.5, pointRadius: 0, pointHitRadius: 12, pointHoverRadius: 5, pointBackgroundColor: '#f43f5e', pointBorderColor: ptBorder, pointBorderWidth: 2 }
+                ]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { display: false } },
+                scales: {
+                  x: { grid: { display: false }, border: { display: false }, ticks: { color: tickC, font: { size: 11, weight: 600 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } },
+                  y: { position: 'right', beginAtZero: true, border: { display: false }, grid: { color: gridC }, ticks: { color: tickC, font: { size: 11 }, maxTicksLimit: 5 } }
+                }
+              }
+            });
+          }
+        },
+
+        renderCompoundChart() {
+          const ctx = document.getElementById('compoundChart');
+          if (!ctx || !window.Chart) return;
+          if (window._compoundInst) window._compoundInst.destroy();
+          window._compoundInst = new Chart(ctx, {
+            type: 'line',
+            data: { labels: ['Y1', 'Y2', 'Y3', 'Y4', 'Y5'], datasets: [{ label: 'Growth', data: [24000000, 38000000, 52000000, 67000000, 83000000], borderColor: '#10b981' }] },
+            options: { responsive: true, maintainAspectRatio: false }
+          });
+        },
+
+        sendChat() {
+          if (!this.chatInput.trim()) return;
+          this.chatMessages.push({ sender: 'user', text: this.chatInput });
+          this.chatInput = '';
+          this.chatMessages.push({ sender: 'assistant', text: (this.lang === 'en' ? 'Net Balance: ' : 'Saldo Bersih: ') + this.formatMoney(this.periodTotals.balance) });
+        },
+
+        downloadExcel() {
+          const ws = XLSX.utils.json_to_sheet(this.transactions);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+          XLSX.writeFile(wb, 'Fortre-Report.xlsx');
+        },
+
+        downloadCSV() {
+          const csv = 'Date,Description,PurchaseLocation,Category,Method,Amount,Type\n' + this.transactions.map(t => `${t.date},${t.description},${t.purchaseLocation || ''},${t.category},${t.paymentMethod},${t.amount},${t.type}`).join('\n');
+          const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'Fortre-Transactions.csv'; a.click();
+        },
+
+        downloadPDF() {
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF();
+          doc.text('Fortre - Money Tracker & Budget Manager', 14, 20);
+          doc.text('Balance: ' + this.formatMoney(this.periodTotals.balance), 14, 30);
+          doc.save('Fortre-Report.pdf');
+        },
+
+        forceBackupJSON() {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([JSON.stringify({ transactions: this.transactions, budgets: this.budgets }, null, 2)], { type: 'application/json' }));
+          a.download = 'Fortre-Backup.json'; a.click();
+        },
+
+        get badgesList() {
+          return [
+            { id: 'b1', icon: 'shield-check', colorClass: 'text-emerald-500', bgClass: 'bg-emerald-500/15', titleId: 'Budget Master', titleEn: 'Budget Master', descId: 'Menjaga pengeluaran di bawah pagu.', descEn: 'Keep spending within budgets.', progress: this.budgetStatuses.exceededCount === 0 ? 100 : 50 },
+            { id: 'b2', icon: 'piggy-bank', colorClass: 'text-amber-500', bgClass: 'bg-amber-500/15', titleId: 'Consistent Saver', titleEn: 'Consistent Saver', descId: 'Rasio tabungan melampaui target.', descEn: 'Savings rate exceeds target.', progress: Math.min(100, Math.round((this.periodTotals.savingsRate / Math.max(1, this.targetSavingsRate)) * 100)) },
+            { id: 'b3', icon: 'umbrella', colorClass: 'text-sky-500', bgClass: 'bg-sky-500/15', titleId: 'Emergency Shield', titleEn: 'Emergency Shield', descId: 'Menyiapkan dana darurat tangguh.', descEn: 'Build a resilient emergency fund.', progress: this.savingsGoals.some(g => g.currentAmount >= 10000000) ? 100 : 40 },
+            { id: 'b4', icon: 'flame', colorClass: 'text-rose-500', bgClass: 'bg-rose-500/15', titleId: 'QRIS Tracker', titleEn: 'QRIS Tracker', descId: 'Mencatat transaksi digital & QRIS.', descEn: 'Log digital & QRIS transactions.', progress: this.transactions.length >= 5 ? 100 : this.transactions.length * 20 },
+            { id: 'b5', icon: 'trending-up', colorClass: 'text-indigo-500', bgClass: 'bg-indigo-500/15', titleId: 'Wealth Builder', titleEn: 'Wealth Builder', descId: 'Menumbuhkan portofolio aset.', descEn: 'Grow positive investment assets.', progress: this.assets.length > 0 ? 100 : 0 },
+            { id: 'b6', icon: 'crown', colorClass: 'text-purple-500', bgClass: 'bg-purple-500/15', titleId: 'Skor Prima', titleEn: 'Prime Health', descId: 'Skor Kesehatan Finansial >= 80.', descEn: 'Financial Health Score >= 80.', progress: this.financialHealth.score >= 80 ? 100 : Math.round((this.financialHealth.score / 80) * 100) }
+          ];
+        },
+        get unlockedBadges() { return this.badgesList.filter(b => b.progress >= 100); },
+        get hasNewBadge() { return this.unlockedBadges.some(b => !this.seenBadges.includes(b.id)); },
+        markBadgesSeen() {
+          this.seenBadges = Array.from(new Set([...this.seenBadges, ...this.unlockedBadges.map(b => b.id)]));
+          localStorage.setItem('fortre_seen_badges', JSON.stringify(this.seenBadges));
+        },
+        badgeIconSvg(icon, sizeClass = 'w-4 h-4') {
+          const paths = {
+            'shield-check': '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+            'piggy-bank': '<path d="M11 17h3v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3a3.16 3.16 0 0 0 2-2h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-1a5 5 0 0 0-2-4V3a4 4 0 0 0-3.2 1.6l-.3.4H11a6 6 0 0 0-6 6v1a5 5 0 0 0 2 4v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1z"/><path d="M16 10h.01"/><path d="M2 8v1a2 2 0 0 0 2 2h1"/>',
+            'umbrella': '<path d="M12 13v7a2 2 0 0 0 4 0"/><path d="M12 2v2"/><path d="M20.992 13a1 1 0 0 0 .97-1.274 10.284 10.284 0 0 0-19.923 0A1 1 0 0 0 3 13z"/>',
+            'flame': '<path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/>',
+            'trending-up': '<path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/>',
+            'crown': '<path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/>'
+          };
+          const inner = paths[icon] || paths['shield-check'];
+          return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${sizeClass}">${inner}</svg>`;
+        },
+        walletIconSvg(icon, sizeClass = 'w-4 h-4') {
+          const paths = {
+            'landmark': '<line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/>',
+            'qr-code': '<rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/>',
+            'banknote': '<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>'
+          };
+          const inner = paths[icon] || paths['landmark'];
+          return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${sizeClass}">${inner}</svg>`;
+        },
+
+        initDotMatrix() {
+          const canvas = document.getElementById('dotMatrixCanvas');
+          if (!canvas) return;
+          const ctx = canvas.getContext('2d');
+          let w = canvas.width = window.innerWidth;
+          let h = canvas.height = window.innerHeight;
+          const drops = Array(Math.floor(w / 28)).fill(0).map(() => Math.random() * -100);
+          const self = this;
+          function draw() {
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = self.darkMode ? 'rgba(255, 255, 255, 0.14)' : 'rgba(15, 23, 42, 0.08)';
+            for (let i = 0; i < drops.length; i++) {
+              ctx.beginPath();
+              ctx.arc(i * 28 + 14, drops[i], 1.3, 0, Math.PI * 2);
+              ctx.fill();
+              if (drops[i] > h && Math.random() > 0.985) drops[i] = 0;
+              else drops[i] += 0.65;
+            }
+            requestAnimationFrame(draw);
+          }
+          draw();
+        }
+      };
+    }
+  </script>
+</body>
+</html>
