@@ -196,6 +196,24 @@
 <body class="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-800 dark:text-slate-100 antialiased selection:bg-emerald-500 selection:text-white"
       x-data="fortreApp()"
       x-init="initApp()">
+  <!-- Badge Status Melayang (Otomatis muncul di tengah atas layar saat Offline/Sync) -->
+<div class="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 pointer-events-none">
+  <div x-show="!isOnline" x-cloak class="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-900/90 text-amber-300 border border-amber-500/40 shadow-lg backdrop-blur">
+    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+    <span>Offline — Tersimpan Lokal</span>
+    <span x-show="offlineQueue.length > 0" x-text="`(${offlineQueue.length})`" class="font-semibold"></span>
+  </div>
+
+  <div x-show="isOnline && isSyncing" x-cloak class="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-900/90 text-sky-300 border border-sky-500/40 shadow-lg backdrop-blur">
+    <i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i>
+    <span x-text="`Menyinkronkan (${offlineQueue.length})...`"></span>
+  </div>
+
+  <button x-show="isOnline && !isSyncing && offlineQueue.length > 0" @click="syncOfflineQueue()" x-cloak class="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-900/90 text-emerald-300 border border-emerald-500/40 shadow-lg backdrop-blur hover:bg-slate-800 transition">
+    <i data-lucide="cloud-upload" class="w-3.5 h-3.5"></i>
+    <span x-text="`Sync ${offlineQueue.length} Data`"></span>
+  </button>
+</div>
 
   <!-- CANVAS DYNAMIC DOT MATRIX ANIMATION -->
   <canvas id="dotMatrixCanvas" class="fixed inset-0 pointer-events-none z-0 opacity-45"></canvas>
