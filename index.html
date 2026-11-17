@@ -905,9 +905,9 @@
               </div>
             </div>
             <div class="grid grid-cols-3 gap-1.5">
-              <button type="button" @click="installPlatformTab = 'android'" :class="installPlatformTab === 'android' ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'" class="py-1.5 rounded-xl text-[11px] font-bold cursor-pointer">Android</button>
-              <button type="button" @click="installPlatformTab = 'ios'" :class="installPlatformTab === 'ios' ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'" class="py-1.5 rounded-xl text-[11px] font-bold cursor-pointer">iOS</button>
-              <button type="button" @click="installPlatformTab = 'desktop'" :class="installPlatformTab === 'desktop' ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'" class="py-1.5 rounded-xl text-[11px] font-bold cursor-pointer">Desktop</button>
+              <button type="button" @click="installFortreApp('android')">Pasang di Android</button>
+              <button type="button" @click="installFortreApp('ios')">Tampilkan Panduan iOS</button>
+              <button type="button" @click="installFortreApp('desktop')">Pasang Desktop</button>
             </div>
             <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-300 space-y-2">
               <template x-if="installPlatformTab === 'android'">
@@ -3405,5 +3405,49 @@
       };
     }
   </script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .catch((error) => console.warn('Service Worker registration failed:', error));
+    });
+  }
+
+  window.installFortreApp = async function installFortreApp(platform) {
+    const isIOS =
+      /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    if (platform === 'ios' || isIOS) {
+      alert(
+        'Untuk memasang Fortre di iPhone atau iPad: buka halaman ini di Safari, ' +
+        'ketuk ikon Bagikan (Share), lalu pilih “Add to Home Screen” / ' +
+        '“Tambah ke Layar Utama”.'
+      );
+      return;
+    }
+
+    const promptEvent = window.deferredPrompt;
+    if (promptEvent) {
+      await promptEvent.prompt();
+      await promptEvent.userChoice;
+
+      window.deferredPrompt = null;
+      window.__deferredInstallPrompt = null;
+      return;
+    }
+
+    const instructions = platform === 'android'
+      ? 'Buka menu ⋮ di Chrome/Edge, lalu pilih “Install app” atau “Add to Home screen”.'
+      : 'Gunakan menu instalasi di Chrome/Edge (ikon install atau menu browser) untuk memasang Fortre.';
+
+    alert('Instalasi otomatis belum tersedia. ' + instructions);
+  };
+
+  window.addEventListener('appinstalled', () => {
+    window.deferredPrompt = null;
+    window.__deferredInstallPrompt = null;
+  });
+</script>
 </body>
 </html>
